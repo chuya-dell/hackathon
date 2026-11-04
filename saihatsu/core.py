@@ -97,7 +97,7 @@ def _replay_messages(turns: list[Turn], user_index: int) -> list[dict]:
 
 def check(
     conv_text: str, rules_path: str | Path, model: str, items: list[dict] | None = None,
-    ask: Ask = llm.ask,
+    ask: Ask = llm.ask, repeat: int = 1,
 ) -> list[dict]:
     """前後比較。苛立ちの直前の依頼を、規則なし・ありで出し直し、誤りが再発したかを判定する。"""
     turns = parse_conversation(conv_text)
@@ -115,6 +115,13 @@ def check(
         if req is None:
             continue
         msgs = _replay_messages(turns, req.index)
+        for _ in range(max(1, repeat)):  # 出し直しの揺れを見るため、同じ依頼を繰り返せる
+            rows.append(_check_once(it, req, turns, msgs, rule_text, model, ask))
+    return rows
+
+
+def _check_once(it, req, turns, msgs, rule_text, model, ask) -> dict:
+    if True:
         without = ask("", "", model, 1500, messages=msgs)
         with_rules = ask(rule_text, "", model, 1500, messages=msgs)
         verdicts = {}
@@ -131,13 +138,10 @@ def check(
                 verdicts[label] = rec if isinstance(rec, bool) else None
             except Exception:
                 verdicts[label] = None
-        rows.append(
-            {
-                "error_type": it["error_type"], "rule": it["rule"],
-                "recurred_without": verdicts["without"], "recurred_with": verdicts["with"],
-            }
-        )
-    return rows
+        return {
+            "error_type": it["error_type"], "rule": it["rule"],
+            "recurred_without": verdicts["without"], "recurred_with": verdicts["with"],
+        }
 
 
 def _mark(v: bool | None) -> str:

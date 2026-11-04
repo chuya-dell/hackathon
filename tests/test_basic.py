@@ -209,3 +209,11 @@ def test_run_claude_parses_json_and_errors(monkeypatch):
         assert False
     except llm.ClaudeCodeError as ex:
         assert "認証失敗" in str(ex)
+
+
+def test_check_repeat(tmp_path):
+    rp = tmp_path / "rules.md"
+    save_rules(rp, [Rule("R001", "x")])
+    rows = core.check(CONV, rp, "m", None, fake_ask_factory(None), repeat=3)
+    assert len(rows) == 3
+    assert "規則なし 3/3 → 規則あり 0/3" in core.render_check_table(rows)

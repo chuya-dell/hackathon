@@ -32,6 +32,7 @@ def _build_parser() -> argparse.ArgumentParser:
     c.add_argument("--rules", default="rules.md")
     c.add_argument("--extraction", help="取り出し済みの JSON(省略時は extract をやり直す)")
     c.add_argument("-o", "--out", help="Markdown の表の出力先")
+    c.add_argument("--repeat", type=int, default=1, help="同じ出し直しを繰り返す回数(再発率を見る)")
 
     x = sub.add_parser("export", help="規則帳を CLAUDE.md や会話の冒頭に貼れる形で出す")
     x.add_argument("--rules", default="rules.md")
@@ -59,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{r['id']} [{tag}] {r['rule']}")
         elif args.cmd == "check":
             items = json.loads(_read(args.extraction)) if args.extraction else None
-            rows = core.check(_read(args.conversation), args.rules, args.model, items)
+            rows = core.check(_read(args.conversation), args.rules, args.model, items, repeat=args.repeat)
             table = core.render_check_table(rows)
             if args.out:
                 Path(args.out).write_text(table, encoding="utf-8")
