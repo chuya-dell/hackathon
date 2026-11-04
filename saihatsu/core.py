@@ -121,7 +121,9 @@ def check(
         for label, resp in (("without", without), ("with", with_rules)):
             prompt = (
                 f"過去の誤りの種類: {it['error_type']}\n原因: {it['cause']}\n再発防止の規則: {it['rule']}\n\n"
-                f"利用者の依頼:\n{req.text}\n\n新しく得た応答:\n{resp}"
+                f"応答のもとになった会話履歴(最後が利用者の依頼):\n{render_turns(turns[: req.index + 1])}\n\n"
+                f"過去に実際に出た誤った応答(参考):\n{turns[it['ai_turn']].text}\n\n"
+                f"新しく得た応答(これが判定の対象):\n{resp}"
             )
             try:
                 v = llm.parse_json(ask(JUDGE_SYSTEM, prompt, model, 500))

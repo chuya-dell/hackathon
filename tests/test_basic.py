@@ -31,6 +31,34 @@ def test_parse_conversation():
     assert previous_user_turn(turns, 3).index == 2
 
 
+def test_heading_inside_code_block_is_not_boundary():
+    text = "## あなた\n例を見て:\n\n```md\n## Claude\nこれは引用\n```\n続き\n\n## Claude\n了解\n"
+    turns = parse_conversation(text)
+    assert [t.role for t in turns] == [USER, AI]
+    assert "## Claude\nこれは引用" in turns[0].text and turns[0].text.endswith("続き")
+
+
+def test_judge_and_replay_receive_history(tmp_path):
+    rp = tmp_path / "rules.md"
+    save_rules(rp, [Rule("R001", "x")])
+    seen = {"replay": [], "judge": []}
+
+    def ask(system, user, model, max_tokens=0, messages=None):
+        if system == core.JUDGE_SYSTEM:
+            seen["judge"].append(user)
+            return '{"recurred": false}'
+        if messages is not None:
+            seen["replay"].append(messages)
+        return "応答"
+
+    conv = "## あなた\n前提: 予算は3万円\n\n## Claude\nはい\n\n## あなた\n10案出して\n\n## Claude\n長い応答\n\n## あなた\n長い\n"
+    items = [{"user_turn": 4, "ai_turn": 3, "error_type": "e", "cause": "c", "rule": "r", "quote": "q"}]
+    core.check(conv, rp, "m", items, ask)
+    assert len(seen["replay"]) == 2 and all(len(m) == 3 for m in seen["replay"])  # 規則なし/あり、同じ履歴
+    assert seen["replay"][0][-1]["content"] == "10案出して"
+    assert all("予算は3万円" in j and "長い応答" in j for j in seen["judge"])  # 判定役にも同じ履歴
+
+
 def test_parse_json_with_fence_and_prose():
     assert llm.parse_json('```json\n[{"a": 1}]\n```') == [{"a": 1}]
     assert llm.parse_json('結果は次です。\n{"x": true}\n以上') == {"x": True}
