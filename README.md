@@ -15,7 +15,7 @@
 `check` が芯である。記憶の機能は「覚える」だけで、覚えた内容が効いたかを示さない。再発防止帳は、規則を入れる前と後の再発数を数字で比べる。
 
 ## 導入
-Python 3.10 以上が要る。
+Python 3.10 以上と、[Claude Code](https://claude.com/claude-code)(claude コマンド)が要る。
 
 ```bash
 git clone https://github.com/chuya-dell/hackathon.git
@@ -23,11 +23,7 @@ cd hackathon
 pip install -e .
 ```
 
-API キーは環境変数から読む(ファイルに書かない)。
-
-```powershell
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
-```
+Claude Code にログインしていれば動く。内部では claude -p を子のプロセスとして呼ぶので、API キーは要らず、API の従量課金も発生しない(子のプロセスからは ANTHROPIC_API_KEY を外している)。
 
 ## 使い方
 会話記録は、`## あなた` と `## Claude` の見出しで発言を区切った md ファイル(`examples/` に架空の例が5本ある)。
@@ -39,10 +35,10 @@ saihatsu check examples/01_例を中心にしてしまう.md --rules rules.md --
 saihatsu export --rules rules.md
 ```
 
-モデルの既定は `claude-sonnet-5-5`。`saihatsu --model claude-haiku-5-5 check ...` のように、サブコマンドの前で変えられる。使った API の回数・トークン・概算額は、標準エラーに出る(単価は仮置き)。
+モデルの既定は `sonnet`。`saihatsu --model haiku check ...` のように、サブコマンドの前で変えられる。呼んだ回数・時間・トークンは、標準エラーに出る。
 
 ## 試験
-API を呼ばない部分(会話の分割、規則帳の読み書き、重複時の回数の加算、取り出し結果の検査)は、Claude の呼び出しを偽物に差し替えて試験している。
+API を呼ばない部分(会話の分割、規則帳の読み書き、重複時の回数の加算、取り出し結果の検査)は、`claude -p` の呼び出しを偽物に差し替えて試験している。
 
 ```bash
 pip install -e ".[dev]"
@@ -60,10 +56,10 @@ python -m pytest
 | 04 | 返答が長すぎる | 実行待ち | 実行待ち |
 | 05 | 略語を説明なしに使う | 実行待ち | 実行待ち |
 
-(API キーが設定された環境で通し実行したあとに、この表を実測値で置き換える。)
+(Claude Code にログインした環境で通し実行したあとに、この表を実測値で置き換える。)
 
 ## 作成禁止の例に当たらない理由
 会話記録から誤りと規則を取り出して前後比較で検証する道具であり、文書を検索して答える基本的な RAG アプリ・Streamlit アプリ・画像解析ツール・メンタルヘルスや医療の助言のいずれでもない。
 
 ## 個人情報と鍵
-`examples/` の会話はすべて架空である。鍵は `.env` を含めてコミットしない(`.gitignore` 済み)。
+`examples/` の会話はすべて架空である。API キーは使わない。鍵は `.env` を含めてコミットしない(`.gitignore` 済み)。

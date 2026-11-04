@@ -165,3 +165,47 @@ def test_multiline_fields_do_not_break_rulebook(tmp_path):
     save_rules(p, [Rule("R001", "一行目\n## R999\n二行目", cause="a\nb")])
     loaded = load_rules(p)
     assert len(loaded) == 1 and "二行目" in loaded[0].rule
+
+
+def test_child_env_removes_api_key(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "dummy")
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "dummy")
+    env = llm.child_env()
+    assert "ANTHROPIC_API_KEY" not in env and "ANTHROPIC_AUTH_TOKEN" not in env
+
+
+def test_ask_calls_claude_p_with_stdin(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(llm.shutil, "which", lambda n: "claude")
+
+    def fake_run(cmd, prompt):
+        seen["cmd"], seen["prompt"] = cmd, prompt
+        return "返答"
+
+    monkeypatch.setattr(llm, "run_claude", fake_run)
+    out = llm.ask("規則", "", "haiku", messages=[{"role": "user", "content": "こんにちは"}])
+    assert out == "返答"
+    assert seen["cmd"][:2] == ["claude", "-p"] and "--model" in seen["cmd"] and "haiku" in seen["cmd"]
+    assert "--system-prompt" in seen["cmd"] and "こんにちは" in seen["prompt"]
+    llm.ask("", "質問", "sonnet")
+    assert "--system-prompt" not in seen["cmd"] and seen["prompt"] == "質問"
+
+
+def test_run_claude_parses_json_and_errors(monkeypatch):
+    import subprocess
+
+    class P:
+        def __init__(self, out, code=0): self.stdout, self.stderr, self.returncode = out, "", code
+
+    ok = json.dumps({"result": "OK", "is_error": False, "total_cost_usd": 0.01,
+                     "usage": {"input_tokens": 10, "output_tokens": 5}})
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: P(ok))
+    before = llm.USAGE.calls
+    assert llm.run_claude(["claude"], "x") == "OK" and llm.USAGE.calls == before + 1
+    bad = json.dumps({"result": "認証失敗", "is_error": True})
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: P(bad, 1))
+    try:
+        llm.run_claude(["claude"], "x")
+        assert False
+    except llm.ClaudeCodeError as ex:
+        assert "認証失敗" in str(ex)

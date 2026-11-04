@@ -7,7 +7,7 @@ name = "saihatsu-boushi"
 version = "0.1.0"
 description = "人工知能の誤りを再発防止の規則に変え、効いたかを確かめる道具"
 requires-python = ">=3.10"
-dependencies = ["anthropic>=0.40"]
+dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest"]

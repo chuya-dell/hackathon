@@ -66,8 +66,8 @@ def main(argv: list[str] | None = None) -> int:
             print(table, end="")
         elif args.cmd == "export":
             print(export_text(load_rules(args.rules)), end="")
-    except llm.NoApiKey as ex:
-        print(f"エラー: {ex}\nPowerShell なら `$env:ANTHROPIC_API_KEY = \"...\"` で設定してください。", file=sys.stderr)
+    except llm.ClaudeCodeError as ex:
+        print(f"エラー: {ex}", file=sys.stderr)
         return 2
     except (FileNotFoundError, ValueError) as ex:
         print(f"エラー: {ex}", file=sys.stderr)
