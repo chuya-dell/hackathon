@@ -61,7 +61,9 @@ def build_command(system: str, model: str) -> list[str]:
     if not exe:
         raise ClaudeCodeError("`claude` コマンドが見つかりません。Claude Code を入れてログインしてください。")
     cmd = [exe, "-p", "--model", model, "--output-format", "json", "--tools", "",
-           "--no-session-persistence", "--disable-slash-commands"]
+           "--no-session-persistence", "--disable-slash-commands",
+           # ユーザー設定・プラグイン・MCP を読まない(プランの枠の節約)
+           "--setting-sources", "project", "--strict-mcp-config"]
     if system:
         cmd += ["--system-prompt", system]
     return cmd
