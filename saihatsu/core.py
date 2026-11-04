@@ -46,7 +46,10 @@ def extract(conv_text: str, model: str, ask: Ask = llm.ask) -> list[dict]:
             u, a = int(d["user_turn"]), int(d["ai_turn"])
         except (KeyError, TypeError, ValueError):
             continue
-        if not (0 <= u < len(turns) and 0 <= a < len(turns)) or turns[a].role != AI:
+        if not (0 <= u < len(turns) and 0 <= a < len(turns)):
+            continue
+        # 利用者の苛立ちの発言(user_turn)は、人工知能の誤り(ai_turn)より後ろにある
+        if turns[a].role != AI or turns[u].role != USER or u <= a:
             continue
         items.append(
             {
@@ -122,7 +125,8 @@ def check(
             )
             try:
                 v = llm.parse_json(ask(JUDGE_SYSTEM, prompt, model, 500))
-                verdicts[label] = bool(v.get("recurred"))
+                rec = v.get("recurred")
+                verdicts[label] = rec if isinstance(rec, bool) else None
             except Exception:
                 verdicts[label] = None
         rows.append(
@@ -144,8 +148,9 @@ def render_check_table(rows: list[dict]) -> str:
         lines.append(
             f"| {r['error_type']} | {r['rule']} | {_mark(r['recurred_without'])} | {_mark(r['recurred_with'])} |"
         )
-    n = len(rows)
-    a = sum(1 for r in rows if r["recurred_without"])
-    b = sum(1 for r in rows if r["recurred_with"])
-    lines += ["", f"再発した数: 規則なし {a}/{n} → 規則あり {b}/{n}"]
+    def tally(key: str) -> str:
+        judged = [r[key] for r in rows if r[key] is not None]
+        return f"{sum(judged)}/{len(judged)}"
+
+    lines += ["", f"再発した数(判定できたもののみ): 規則なし {tally('recurred_without')} → 規則あり {tally('recurred_with')}"]
     return "\n".join(lines) + "\n"

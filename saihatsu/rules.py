@@ -52,12 +52,15 @@ def load_rules(path: str | Path) -> list[Rule]:
 def save_rules(path: str | Path, rules: list[Rule]) -> None:
     out = [HEADER]
     for r in rules:
-        quote = " ".join(r.quote.split())
+        def one(s: str) -> str:  # 改行を畳み、1項目=1行を保つ
+            return " ".join(s.split())
+
+        quote = one(r.quote)
         out.append(
             f"## {r.id}\n"
-            f"- 規則: {r.rule}\n"
-            f"- 誤りの種類: {r.error_type}\n"
-            f"- 原因: {r.cause}\n"
+            f"- 規則: {one(r.rule)}\n"
+            f"- 誤りの種類: {one(r.error_type)}\n"
+            f"- 原因: {one(r.cause)}\n"
             f"- 発生回数: {r.count}\n"
             f"- 根拠: {quote}\n"
         )

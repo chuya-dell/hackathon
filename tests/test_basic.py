@@ -104,3 +104,36 @@ def test_check_table(tmp_path):
     assert len(rows) == 1
     table = core.render_check_table(rows)
     assert "| 誤りの種類 |" in table and "規則なし" in table
+    # 規則なしの応答は再発、規則ありの応答は再発しない、と数えられる
+    assert rows[0]["recurred_without"] is True and rows[0]["recurred_with"] is False
+    assert "規則なし 1/1 → 規則あり 0/1" in table
+
+
+def test_judge_nonbool_is_undetermined(tmp_path):
+    rp = tmp_path / "rules.md"
+    save_rules(rp, [Rule("R001", "x")])
+
+    def ask(system, user, model, max_tokens=0, messages=None):
+        if system == core.EXTRACT_SYSTEM:
+            return json.dumps([{"user_turn": 2, "ai_turn": 1, "rule": "r"}])
+        if system == core.JUDGE_SYSTEM:
+            return '{"recurred": "false"}'  # 文字列は真偽値ではない
+        return "応答"
+
+    rows = core.check(CONV, rp, "m", None, ask)
+    assert rows[0]["recurred_without"] is None
+    assert "判定不能" in core.render_check_table(rows)
+    assert "0/0" in core.render_check_table(rows)
+
+
+def test_extract_requires_user_after_ai():
+    def ask(system, user, model, max_tokens=0, messages=None):
+        return json.dumps([{"user_turn": 0, "ai_turn": 1, "rule": "x"}])  # 利用者の発言が誤りより前
+    assert core.extract(CONV, "m", ask) == []
+
+
+def test_multiline_fields_do_not_break_rulebook(tmp_path):
+    p = tmp_path / "rules.md"
+    save_rules(p, [Rule("R001", "一行目\n## R999\n二行目", cause="a\nb")])
+    loaded = load_rules(p)
+    assert len(loaded) == 1 and "二行目" in loaded[0].rule
