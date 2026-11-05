@@ -9,3 +9,8 @@ venv/
 .pytest_cache/
 build/
 dist/
+
+# 週次の自動実行用のローカルファイル(公開しない)
+saihatsu.local.toml
+saihatsu.state.json
+logs/

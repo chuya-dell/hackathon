@@ -37,6 +37,28 @@ saihatsu export --rules rules.md
 
 モデルの既定は `sonnet`。`saihatsu --model haiku check ...` のように、サブコマンドの前で変えられる。呼んだ回数・時間・トークンは、標準エラーに出る。
 
+## 週次の自動実行
+`saihatsu weekly` は、手で打たなくても回るようにするための一括実行。会話記録の置き場を読み、前回の実行以降に更新された記録から苛立ちと誤りの組を取り出し、規則帳に足し、**その週に新しく足した規則だけ**を `check --repeat 3` で前後比較する(その規則1つだけを「規則あり」に使う)。規則なしで再発が0なら比べようがないので「判定不能」。再発率が下がった規則だけを「効果あり」とし、発生回数の多い順に最大20件を、共通メモリ用の md に書き出す。週ごとの結果は、件数と名前を冒頭に置いた週次ノートに残る。
+
+機械ごとの設定(会話記録の置き場・出力先のパス)は、公開しないローカル設定ファイル `saihatsu.local.toml` に書く。`saihatsu.local.toml.example` をコピーして直す。会話記録・規則帳・週次の結果・前回の実行日時の状態ファイルは、このリポジトリに入れない(`.gitignore` 済み)。
+
+```toml
+# saihatsu.local.toml の例(パスは自分の機械のものに直す)
+vault = "C:/path/to/your/vault"
+sources = ["conversations/claude"]   # 会話記録(md)のフォルダ。保管庫からの相対パス
+model = "claude-haiku-5-5"
+max_calls = 300                      # 1回の実行で呼ぶ claude -p の上限。超えそうなら残りを次回へ回して正常終了する
+```
+
+```bash
+saihatsu weekly                  # 手で1回回す
+saihatsu weekly --max-calls 50   # 上限を変えて回す
+```
+
+- 会話記録の形:`## あなた (日時)` `## Claude (日時)` の見出しで発言を区切る。`> [!abstract]-` などのツール呼び出しの囲みは本文から外す。更新日時は、情報欄の `updated:` を使う(同期でファイルの更新日時が揃ってしまうため)。初回は直近7日分だけを読む。
+- 子のプロセスから `ANTHROPIC_API_KEY` を外す作りは、そのまま(プランの枠で動き、API の従量課金にならない)。
+- 毎週日曜21:00の自動実行は、Windows のタスクスケジューラに登録する。`powershell -NoProfile -ExecutionPolicy Bypass -File scripts\register_task.ps1`。止める:`Disable-ScheduledTask -TaskName saihatsu-weekly`。PC が眠っていて逃した場合は、起動後に実行する。ログは `%LOCALAPPDATA%\saihatsu\logs\` に残る。
+
 ## 試験
 API を呼ばない部分(会話の分割、規則帳の読み書き、重複時の回数の加算、取り出し結果の検査)は、`claude -p` の呼び出しを偽物に差し替えて試験している。
 

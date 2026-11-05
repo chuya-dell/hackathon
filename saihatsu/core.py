@@ -32,8 +32,13 @@ JUDGE_SYSTEM = """あなたは、人工知能の応答に、過去と同じ誤�
 出力は JSON のみ: {"recurred": true または false, "reason": "..."}"""
 
 
-def extract(conv_text: str, model: str, ask: Ask = llm.ask) -> list[dict]:
-    turns = parse_conversation(conv_text)
+def _as_turns(conv) -> list[Turn]:
+    """会話は、md の文字列でも、読み込み済みの発言の一覧でもよい。"""
+    return conv if isinstance(conv, list) else parse_conversation(conv)
+
+
+def extract(conv_text, model: str, ask: Ask = llm.ask) -> list[dict]:
+    turns = _as_turns(conv_text)
     if not turns:
         raise ValueError("会話記録から発言を読み取れませんでした(「## あなた」「## Claude」の見出しが必要です)。")
     raw = ask(EXTRACT_SYSTEM, render_turns(turns), model, 4000)
@@ -64,7 +69,7 @@ def extract(conv_text: str, model: str, ask: Ask = llm.ask) -> list[dict]:
     return [i for i in items if i["rule"]]
 
 
-def add(items: list[dict], rules_path: str | Path, model: str, ask: Ask = llm.ask) -> list[dict]:
+def add(items: list[dict], rules_path: str | Path, model: str, ask: Ask = llm.ask, source: str = "") -> list[dict]:
     """取り出し結果を規則帳に足す。重複なら発生回数+1。結果の一覧を返す。"""
     rules = load_rules(rules_path)
     log = []
@@ -81,7 +86,11 @@ def add(items: list[dict], rules_path: str | Path, model: str, ask: Ask = llm.as
             id="", rule=it["rule"], error_type=it.get("error_type", ""),
             cause=it.get("cause", ""), quote=it.get("quote", ""),
         )
+        if source:
+            new.sources = [source]
         r, created = add_or_count(rules, new, dup)
+        if source and source not in r.sources:  # 重複した規則にも、根拠の会話を足す
+            r.sources.append(source)
         log.append({"id": r.id, "rule": r.rule, "created": created, "count": r.count})
     save_rules(rules_path, rules)
     return log
@@ -96,15 +105,18 @@ def _replay_messages(turns: list[Turn], user_index: int) -> list[dict]:
 
 
 def check(
-    conv_text: str, rules_path: str | Path, model: str, items: list[dict] | None = None,
-    ask: Ask = llm.ask, repeat: int = 1,
+    conv_text, rules_path: str | Path, model: str, items: list[dict] | None = None,
+    ask: Ask = llm.ask, repeat: int = 1, rule_text: str | None = None,
 ) -> list[dict]:
-    """前後比較。苛立ちの直前の依頼を、規則なし・ありで出し直し、誤りが再発したかを判定する。"""
-    turns = parse_conversation(conv_text)
+    """前後比較。苛立ちの直前の依頼を、規則なし・ありで出し直し、誤りが再発したかを判定する。
+
+    rule_text を渡すと、規則帳の全体ではなく、その文面だけを「規則あり」に使う(1つの規則の効果を測るとき)。
+    """
+    turns = _as_turns(conv_text)
     if items is None:
-        items = extract(conv_text, model, ask)
-    rules = load_rules(rules_path)
-    rule_text = export_text(rules)
+        items = extract(turns, model, ask)
+    if rule_text is None:
+        rule_text = export_text(load_rules(rules_path))
     rows = []
     for it in items:
         req = None

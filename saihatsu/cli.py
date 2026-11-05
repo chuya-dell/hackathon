@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
-from . import DEFAULT_MODEL, core, llm
+from . import DEFAULT_MODEL, core, llm, weekly
 from .rules import export_text, load_rules
 
 
@@ -16,7 +17,7 @@ def _read(path: str) -> str:
 
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="saihatsu", description="人工知能の誤りを再発防止の規則に変え、効いたかを確かめる道具")
-    p.add_argument("--model", default=DEFAULT_MODEL, help=f"使うモデル(既定: {DEFAULT_MODEL})")
+    p.add_argument("--model", default=None, help=f"使うモデル(既定: {DEFAULT_MODEL}。weekly は設定ファイルの model)")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     e = sub.add_parser("extract", help="会話記録から、苛立ちと直前の誤りを組で取り出す")
@@ -36,6 +37,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     x = sub.add_parser("export", help="規則帳を CLAUDE.md や会話の冒頭に貼れる形で出す")
     x.add_argument("--rules", default="rules.md")
+
+    w = sub.add_parser("weekly", help="会話記録の置き場を読み、規則帳の更新・前後比較・共通メモリへの書き出しを一括で行う")
+    w.add_argument("--config", default=os.environ.get("SAIHATSU_CONFIG", "saihatsu.local.toml"),
+                   help="ローカル設定ファイル(既定: saihatsu.local.toml)")
+    w.add_argument("--max-calls", type=int, default=None, help="この実行で呼ぶ claude -p の上限(既定: 設定ファイル、なければ300)")
     return p
 
 
@@ -44,8 +50,18 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
     args = _build_parser().parse_args(argv)
+    args.model_given = args.model is not None
+    args.model = args.model or DEFAULT_MODEL
     try:
-        if args.cmd == "extract":
+        if args.cmd == "weekly":
+            cfg = weekly.load_config(args.config)
+            if args.model_given:
+                cfg.model = args.model
+            if args.max_calls is not None:
+                cfg.max_calls = args.max_calls
+            res = weekly.run_weekly(cfg, log=lambda m: print(m, flush=True))
+            print(weekly.summary_text(res, cfg), end="")
+        elif args.cmd == "extract":
             items = core.extract(_read(args.conversation), args.model)
             text = json.dumps(items, ensure_ascii=False, indent=2) + "\n"
             if args.out:

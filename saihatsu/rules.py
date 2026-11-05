@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 HEADER = "# 規則帳\n\n人工知能の誤りから作った再発防止の規則。`saihatsu add` が追記する。\n"
@@ -16,6 +16,9 @@ class Rule:
     cause: str = ""
     count: int = 1
     quote: str = ""
+    status: str = ""  # 効果の状態(未確認/効果あり/効果なし/判定不能)。週次の自動実行が付ける
+    sources: list[str] = field(default_factory=list)  # 根拠の会話のファイル名
+
 
 
 def load_rules(path: str | Path) -> list[Rule]:
@@ -32,7 +35,7 @@ def load_rules(path: str | Path) -> list[Rule]:
             continue
         if cur is None:
             continue
-        m = re.match(r"^- (規則|誤りの種類|原因|発生回数|根拠): ?(.*)$", line)
+        m = re.match(r"^- (規則|誤りの種類|原因|発生回数|根拠|効果の状態|根拠の会話): ?(.*)$", line)
         if not m:
             continue
         key, val = m.group(1), m.group(2).strip()
@@ -46,6 +49,10 @@ def load_rules(path: str | Path) -> list[Rule]:
             cur.count = int(val) if val.isdigit() else 1
         elif key == "根拠":
             cur.quote = val
+        elif key == "効果の状態":
+            cur.status = val
+        elif key == "根拠の会話":
+            cur.sources = [x.strip() for x in val.split(" | ") if x.strip()]
     return rules
 
 
@@ -56,7 +63,7 @@ def save_rules(path: str | Path, rules: list[Rule]) -> None:
             return " ".join(s.split())
 
         quote = one(r.quote)
-        out.append(
+        block = (
             f"## {r.id}\n"
             f"- 規則: {one(r.rule)}\n"
             f"- 誤りの種類: {one(r.error_type)}\n"
@@ -64,7 +71,12 @@ def save_rules(path: str | Path, rules: list[Rule]) -> None:
             f"- 発生回数: {r.count}\n"
             f"- 根拠: {quote}\n"
         )
-    Path(path).write_text("\n".join(out), encoding="utf-8")
+        if r.status:
+            block += f"- 効果の状態: {one(r.status)}\n"
+        if r.sources:
+            block += f"- 根拠の会話: {' | '.join(one(x) for x in r.sources)}\n"
+        out.append(block)
+    Path(path).write_text("\n".join(out), encoding="utf-8", newline="\n")
 
 
 def next_id(rules: list[Rule]) -> str:

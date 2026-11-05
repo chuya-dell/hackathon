@@ -1,0 +1,16 @@
+# コピーして saihatsu.local.toml を作り、自分の機械のパスに直す。saihatsu.local.toml は公開しない(.gitignore 済み)。
+
+# 会話記録の置き場がある保管庫(フォルダ)のパス
+vault = "C:/path/to/your/vault"
+
+# 以下は省略可(ここに書いた値が既定)
+# sources = ["conversations/claude"]            # 会話記録(md)のフォルダ。保管庫からの相対パス
+# rulebook = "mistakes/rulebook.md"             # 規則帳(全規則と効果の状態)
+# weekly_dir = "mistakes"                       # 週次ノートの置き場
+# shared_memory_dir = "shared-memory"           # 効いた規則を書き出すフォルダ(MEMORY.md があれば、リンクを1行足す)
+# shared_file = "rules-that-work.md"
+# model = "claude-haiku-5-5"                    # 使うモデル(完全な名前)
+# max_calls = 300                               # 1回の実行で呼ぶ claude -p の上限。超えそうなら残りを次回へ回す
+# initial_days = 7                              # 初回だけ、何日前までの会話を読むか
+# max_export = 20                               # 共通メモリへ書き出す規則の上限
+# state = "saihatsu.state.json"                 # 前回の実行日時などを残すファイル(設定ファイルからの相対)
