@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原子間力顕微鏡 像の解析</title>
+<style>
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --ink:#1d2733; --sub:#5b6776; --line:#d8dee6; --accent:#1f6feb; --accent-ink:#ffffff;
+  --warn-bg:#fff4e5; --warn-line:#f0b45a; --warn-ink:#7a4a00; --err:#c62828; --ok:#1b7f3b; --soft:#eef2f7;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo UI","Hiragino Sans","Noto Sans CJK JP",sans-serif;font-size:14px;line-height:1.55}
+header{background:#14202e;color:#fff;padding:10px 18px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+header h1{font-size:17px;margin:0;font-weight:700}
+header span{font-size:12px;opacity:.8}
+.layout{display:grid;grid-template-columns:372px minmax(0,1fr);gap:14px;padding:14px;align-items:start}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}}
+.side{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+.card>summary{cursor:pointer;padding:9px 12px;font-weight:700;list-style:none;display:flex;align-items:center;gap:8px}
+.card>summary::-webkit-details-marker{display:none}
+.card>summary .no{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+.card>summary::after{content:"▾";margin-left:auto;color:var(--sub)}
+.card:not([open])>summary::after{content:"▸"}
+.card .body{padding:2px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.help{color:var(--sub);font-size:12.5px;margin:0}
+label.row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+label.row>span.t{min-width:7.5em;color:var(--sub);font-size:12.5px}
+input[type=number],input[type=text],select{border:1px solid var(--line);border-radius:5px;padding:4px 6px;font:inherit;background:#fff;color:var(--ink);min-width:0}
+input[type=number]{width:96px}
+select{max-width:100%}
+button{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;padding:5px 11px;cursor:pointer}
+button:hover{background:var(--soft)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.primary:hover{filter:brightness(1.08)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.warn{background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-ink);border-radius:6px;padding:7px 9px;font-size:12.5px}
+.redwarn{background:#fdecec;border:1px solid #e57373;color:var(--err);border-radius:6px;padding:7px 9px;font-size:12.5px;font-weight:700}
+.info{background:var(--soft);border-radius:6px;padding:6px 9px;font-size:12.5px;color:var(--sub)}
+.file{display:block;border:1.5px dashed #9fb0c3;border-radius:7px;padding:9px;text-align:center;cursor:pointer;background:#fafcff}
+.file:hover{background:#eef5ff}
+.file input{display:none}
+.file b{display:block}
+.file small{color:var(--sub)}
+.main{display:flex;flex-direction:column;gap:12px;min-width:0}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{border:1px solid var(--line);border-bottom:none;border-radius:7px 7px 0 0;background:#e9eef4;padding:7px 16px;font-weight:700}
+.tabs button.on{background:#fff;color:var(--accent)}
+.stage{background:#fff;border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:12px;min-height:300px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:1250px){.pair{grid-template-columns:1fr}}
+.pane h3{margin:0 0 4px;font-size:14px}
+.pane .cv{position:relative;background:#e4e9ef;border-radius:4px;display:flex;justify-content:center;overflow:hidden}
+.pane canvas{display:block;cursor:crosshair;max-width:100%}
+.readout{font-size:12px;color:var(--sub);min-height:1.6em;font-variant-numeric:tabular-nums}
+.cbar{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap}
+.cbar canvas{width:120px;height:12px;cursor:default;border-radius:2px;border:1px solid var(--line)}
+.cbar input{width:78px}
+.cbar .lab{font-size:12px;color:var(--sub)}
+.rects{display:flex;flex-direction:column;gap:6px}
+.ritem{border:1px solid var(--line);border-radius:6px;padding:5px 7px;background:#fbfcfd}
+.ritem.sel{border-color:var(--accent);background:#f1f7ff}
+.ritem .l1{display:flex;align-items:center;gap:6px}
+.ritem input[type=text]{flex:1;width:0}
+.ritem .sw{width:14px;height:14px;border-radius:3px;flex:none}
+.ritem .l2{font-size:11.5px;color:var(--sub);display:flex;gap:8px;align-items:center;margin-top:2px;flex-wrap:wrap}
+.ritem button.x{padding:1px 7px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{border:1px solid var(--line);padding:4px 8px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:var(--soft);font-weight:700}
+.results{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:12px}
+.results h2{font-size:15px;margin:0 0 4px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:2px 14px;font-size:13.5px}
+.kv dt{color:var(--sub)}
+.kv dd{margin:0;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;background:#fff4e5;color:var(--warn-ink);border:1px solid var(--warn-line);border-radius:10px;padding:0 8px;font-size:12px;margin-left:6px}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#14202e;color:#fff;padding:9px 16px;border-radius:8px;max-width:80vw;z-index:20;box-shadow:0 4px 14px rgba(0,0,0,.3);display:none}
+.toast.err{background:#b71c1c}
+.c3ctl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+#c3d{width:100%;height:560px;display:block;background:#f7f9fb;border-radius:6px;cursor:grab;touch-action:none}
+#c3d:active{cursor:grabbing}
+#chist{width:100%;height:380px;display:block}
+.empty{color:var(--sub);padding:30px 10px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>原子間力顕微鏡 像の解析</h1>
+  <span>傾き補正・表面粗さ・ピラーの高さ・三次元表示 / 装置も付属アプリも使わず、このファイルだけで動きます</span>
+</header>
+
+<div class="layout">
+<div class="side">
+
+  <details class="card" open id="step1">
+    <summary><span class="no">1</span>画像を読み込む</summary>
+    <div class="body">
+      <label class="file" for="fileTable"><b>数値の表を読み込む(確実に動く方法)</b><small>テキスト・CSV・タブ区切り。ここにファイルをドロップしても読み込めます</small>
+        <input type="file" id="fileTable" accept=".txt,.csv,.tsv,.dat,.asc,text/plain,text/csv"></label>
+      <label class="file" for="fileXqd" style="border-color:#e57373"><b>.xqd を直接読み込む(実験的)</b><small style="color:#c62828">実験的・値は未確定。倍率と並べ方の確認が済んでいません</small>
+        <input type="file" id="fileXqd" accept=".xqd"></label>
+      <div id="xqdBanner" class="redwarn" style="display:none">実験的・値は未確定: 高さの倍率は候補(0.3113 ナノメートル/カウント。10200 ÷ 32767 と一致)であり、未確定です。この倍率で、COP 3000.xqd のピラーの高さは約 346 ナノメートルになり、想定(約 250 ナノメートル)と合いません。付属アプリが画面に出した数値、または書き出した数値ファイルと見比べるまで、.xqd の高さは確定できません。倍率は、下の「高さの倍率」の欄で変えられます。</div>
+      <div id="chRow" style="display:none;flex-direction:column;gap:6px">
+        <div class="info">.xqd には、同じ高さの信号を横に半画素ずらして標本化した 2 つの標本(偶数番目の列と奇数番目の列)が、交互に入っています。2 つは別の信号ではありません。</div>
+        <label class="row"><span class="t">標本の使い方</span>
+          <select id="xqdCh"><option value="0" selected>偶数番目の標本だけ(256×256。従来どおり)</option><option value="1">奇数番目の標本だけ(256×256)</option><option value="2">2 つを交互に並べる(512×256。画素の横の大きさは半分)</option></select></label>
+        <div class="info" id="xqdxInfo" style="display:none"></div>
+      </div>
+      <div class="warn"><b>走査範囲を必ず確認してください。</b>初期値の 30 マイクロメートルは仮の値です。撮影条件と違うと、長さと中心間の間隔と三次元の形がずれます。</div>
+      <label class="row"><span class="t">走査範囲(1辺)</span>
+        <input type="number" id="scanVal" value="30" min="0" step="any">
+        <select id="scanUnit"><option value="1000" selected>マイクロメートル</option><option value="1">ナノメートル</option></select></label>
+      <label class="row"><span class="t">高さの単位</span>
+        <select id="zUnit">
+          <option value="1" selected>ナノメートル(そのまま)</option>
+          <option value="1000">マイクロメートル</option>
+          <option value="0.1">オングストローム</option>
+          <option value="custom">その他(下の倍率を使う)</option>
+        </select></label>
+      <label class="row"><span class="t">高さの倍率</span>
+        <input type="number" id="zFactor" value="1" step="any" disabled>
+        <span class="help">表の値 1 が何ナノメートルか</span></label>
+      <div class="info" id="loadInfo">まだ読み込んでいません。</div>
+    </div>
+  </details>
+
+  <details class="card" open id="step2">
+    <summary><span class="no">2</span>範囲を囲む</summary>
+    <div class="body">
+      <p class="help">画像の上でマウスをドラッグすると、四角形ができます。四角形の内側をドラッグすると移動し、角をドラッグすると大きさが変わります。Delete キーで、選んだ四角形が消えます。1番目の四角形は「頂上」、2番目は「床」と名前が付きます。名前は書き換えられます。</p>
+      <div class="rects" id="rectList"></div>
+      <div class="btnrow"><button id="rectClear">四角形をすべて消す</button></div>
+    </div>
+  </details>
+
+  <details class="card" open id="step3">
+    <summary><span class="no">3</span>傾きを補正する</summary>
+    <div class="body">
+      <label class="row"><span class="t">補正の次数</span>
+        <select id="order"><option value="1">一次(傾きだけ)</option><option value="2" selected>二次(傾き+湾曲)</option><option value="3">三次</option></select></label>
+      <label class="row"><span class="t">補正に使う範囲</span>
+        <select id="fitMode"><option value="all" selected>画像全体</option><option value="rects">指定した四角形(「補正に使う」に印を付けたもの)</option></select></label>
+      <label class="row"><span class="t">高さの基準(0)</span>
+        <select id="shiftMode"><option value="fit" selected>補正に使った範囲の平均を 0 にする</option><option value="rect">下で選ぶ四角形の平均を 0 にする</option></select></label>
+      <label class="row" id="shiftRectRow" style="display:none"><span class="t">基準の四角形</span><select id="shiftRect"></select></label>
+      <div class="btnrow"><button class="primary" id="btnFlat">補正する</button><button id="btnUndo">補正を元に戻す</button></div>
+      <div class="info" id="flatInfo">補正はまだ行っていません。</div>
+    </div>
+  </details>
+
+  <details class="card" open id="step4">
+    <summary><span class="no">4</span>表面粗さ</summary>
+    <div class="body">
+      <p class="help">四角形ごとの算術平均粗さ・二乗平均平方根粗さ・最大高さ・平均の高さを、画面右下の表に自動で表示します。補正を行った後は、補正後の画像で計算します。</p>
+    </div>
+  </details>
+
+  <details class="card" open id="step5">
+    <summary><span class="no">5</span>ピラーの高さと個数</summary>
+    <div class="body">
+      <b style="font-size:13px">方法ア: 四角形で指定</b>
+      <label class="row"><span class="t">頂上の範囲</span><select id="selTop"></select></label>
+      <label class="row"><span class="t">床の範囲</span><select id="selFloor"></select></label>
+      <div class="btnrow"><button class="primary" id="btnHeightRect">高さを出す(平均の差)</button></div>
+      <hr style="border:none;border-top:1px solid var(--line);width:100%;margin:2px 0">
+      <b style="font-size:13px">方法イ: 自動(推定)</b>
+      <label class="row"><span class="t">対象の範囲</span><select id="autoRange"></select></label>
+      <div class="btnrow"><button class="primary" id="btnHeightAuto">ヒストグラムから推定する</button></div>
+      <hr style="border:none;border-top:1px solid var(--line);width:100%;margin:2px 0">
+      <b style="font-size:13px">ピラーの個数と中心間の間隔</b>
+      <label class="row"><span class="t">対象の範囲</span><select id="countRange"></select></label>
+      <div class="btnrow"><button class="primary" id="btnCount">ピラーを数える</button></div>
+      <p class="help">高さの中間値で二値化し、つながった領域を 1 個として数えます。ピラーが格子状に並ぶ画像の確認用です。</p>
+    </div>
+  </details>
+
+  <details class="card" open id="step6">
+    <summary><span class="no">6</span>三次元表示</summary>
+    <div class="body"><p class="help">画面右の「三次元」タブで、マウスのドラッグで回し、ホイールで拡大縮小します。高さ方向の拡大率と範囲は、タブの上部で変えられます。</p></div>
+  </details>
+
+  <details class="card" open id="step7">
+    <summary><span class="no">7</span>書き出す</summary>
+    <div class="body">
+      <div class="btnrow"><button id="btnCsv">計算結果を CSV で保存</button><button id="btnPng">表示中の画像を PNG で保存</button></div>
+      <p class="help">CSV は、各範囲の数値と、読み込みと補正の条件を 1 つの表にして保存します。PNG は、いま開いているタブの画像を保存します。</p>
+    </div>
+  </details>
+</div>
+
+<div class="main">
+  <div>
+    <div class="tabs" role="tablist">
+      <button class="on" data-tab="img">画像(補正前と補正後)</button>
+      <button data-tab="hist">高さの分布</button>
+      <button data-tab="d3">三次元</button>
+    </div>
+    <div class="stage">
+      <div id="tab-img">
+        <div id="imgEmpty" class="empty">左の「1 画像を読み込む」から、数値の表を読み込んでください。</div>
+        <div class="pair" id="imgPair" style="display:none">
+          <div class="pane" id="paneBefore">
+            <h3>補正前</h3>
+            <div class="cv"><canvas id="cvBefore"></canvas></div>
+            <div class="readout" id="roBefore">&nbsp;</div>
+            <div class="cbar"><span class="lab">下限</span><input type="number" id="minBefore" step="any"><canvas id="barBefore" width="120" height="12"></canvas><span class="lab">上限</span><input type="number" id="maxBefore" step="any"><button id="autoBefore">自動</button></div>
+          </div>
+          <div class="pane" id="paneAfter">
+            <h3>補正後 <span id="afterTag" style="font-weight:400;color:var(--sub);font-size:12px"></span></h3>
+            <div class="cv"><canvas id="cvAfter"></canvas></div>
+            <div class="readout" id="roAfter">&nbsp;</div>
+            <div class="cbar"><span class="lab">下限</span><input type="number" id="minAfter" step="any"><canvas id="barAfter" width="120" height="12"></canvas><span class="lab">上限</span><input type="number" id="maxAfter" step="any"><button id="autoAfter">自動</button></div>
+          </div>
+        </div>
+        <p class="help" id="imgHint" style="margin-top:8px;display:none">色は高さを表します(単位: ナノメートル)。マウスを画像に重ねると、位置と高さが出ます。2つの画像のどちらでも、ドラッグで四角形を作れます。</p>
+      </div>
+      <div id="tab-hist" style="display:none">
+        <div class="empty" id="histEmpty">画像を読み込むと、高さの分布が表示されます。</div>
+        <canvas id="chist" style="display:none"></canvas>
+        <p class="help" id="histHint" style="display:none">横軸は高さ(ナノメートル)、縦軸は画素の数です。「ヒストグラムから推定する」を押すと、床の山と頂上の山の位置が線で表示されます。</p>
+      </div>
+      <div id="tab-d3" style="display:none">
+        <div class="empty" id="d3Empty">画像を読み込むと、三次元表示ができます。</div>
+        <div id="d3Wrap" style="display:none">
+          <div class="c3ctl">
+            <label class="row"><span class="t" style="min-width:auto">表示する範囲</span><select id="d3Range"></select></label>
+            <label class="row"><span class="t" style="min-width:auto">高さ方向の拡大率</span><input type="range" id="d3Z" min="0.5" max="40" step="0.5" value="4" style="width:200px"><b id="d3ZVal">4.0 倍</b></label>
+            <button id="d3Reset">視点を戻す</button>
+          </div>
+          <canvas id="c3d"></canvas>
+          <p class="help">ドラッグで回転、ホイールで拡大縮小します。補正後の画像(補正していないときは補正前の画像)を表示します。高さ方向の拡大率が 1 倍のとき、縦横と高さが同じ縮尺です。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <div><h2>表面粗さ <span class="tag" id="roughTag"></span></h2><div id="roughOut" class="help">画像を読み込むと表示されます。</div></div>
+    <div><h2>ピラーの高さ(方法ア: 四角形で指定)</h2><div id="hRectOut" class="help">「高さを出す」を押すと表示されます。</div></div>
+    <div><h2>ピラーの高さ(方法イ: 自動) <span class="tag">推定</span></h2><div id="hAutoOut" class="help">「ヒストグラムから推定する」を押すと表示されます。</div></div>
+    <div><h2>ピラーの個数と中心間の間隔</h2><div id="countOut" class="help">「ピラーを数える」を押すと表示されます。</div></div>
+  </div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== 計算の部分(画面に依存しない。tests/run_tests.js も同じコードを読み込んで確かめる) ===== */
+const AFMCore = (function () {
+  'use strict';
+
+  // 多項式の項: x^i * y^j (i+j <= order)
+  function polyTerms(order) {
+    const t = [];
+    for (let d = 0; d <= order; d++) for (let i = d; i >= 0; i--) t.push([i, d - i]);
+    return t;
+  }
+
+  // 正規化した座標(-1〜1)。画素の中心を使う。
+  function normCoord(k, n) {
+    const h = (n - 1) / 2;
+    return h > 0 ? (k - h) / h : 0;
+  }
+
+  function solveLinear(A, b, m) {
+    // ガウスの消去法(部分ピボット選択)。A は m×m の Float64Array、b は長さ m。
+    const M = new Float64Array(m * (m + 1));
+    for (let i = 0; i < m; i++) {
+      for (let j = 0; j < m; j++) M[i * (m + 1) + j] = A[i * m + j];
+      M[i * (m + 1) + m] = b[i];
+    }
+    for (let c = 0; c < m; c++) {
+      let p = c, best = Math.abs(M[c * (m + 1) + c]);
+      for (let r = c + 1; r < m; r++) {
+        const v = Math.abs(M[r * (m + 1) + c]);
+        if (v > best) { best = v; p = r; }
+      }
+      if (best < 1e-12) throw new Error('補正の計算ができません(補正に使う範囲が狭すぎるか、一直線に並んでいます)');
+      if (p !== c) for (let j = c; j <= m; j++) {
+        const t = M[c * (m + 1) + j]; M[c * (m + 1) + j] = M[p * (m + 1) + j]; M[p * (m + 1) + j] = t;
+      }
+      for (let r = c + 1; r < m; r++) {
+        const f = M[r * (m + 1) + c] / M[c * (m + 1) + c];
+        if (f === 0) continue;
+        for (let j = c; j <= m; j++) M[r * (m + 1) + j] -= f * M[c * (m + 1) + j];
+      }
+    }
+    const x = new Float64Array(m);
+    for (let i = m - 1; i >= 0; i--) {
+      let s = M[i * (m + 1) + m];
+      for (let j = i + 1; j < m; j++) s -= M[i * (m + 1) + j] * x[j];
+      x[i] = s / M[i * (m + 1) + i];
+    }
+    return x;
+  }
+
+  // 最小二乗法で、座標 x,y の order 次までの多項式をあてはめる。mask が null なら画像全体。
+  function fitPolynomial(z, W, H, mask, order) {
+    const terms = polyTerms(order), m = terms.length;
+    const A = new Float64Array(m * m), b = new Float64Array(m), phi = new Float64Array(m);
+    const px = new Float64Array(order + 1), py = new Float64Array(order + 1);
+    let n = 0;
+    for (let y = 0; y < H; y++) {
+      const Y = normCoord(y, H);
+      py[0] = 1; for (let k = 1; k <= order; k++) py[k] = py[k - 1] * Y;
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        if (mask && !mask[idx]) continue;
+        const v = z[idx];
+        if (!isFinite(v)) continue;
+        const X = normCoord(x, W);
+        px[0] = 1; for (let k = 1; k <= order; k++) px[k] = px[k - 1] * X;
+        for (let t = 0; t < m; t++) phi[t] = px[terms[t][0]] * py[terms[t][1]];
+        for (let i = 0; i < m; i++) {
+          b[i] += phi[i] * v;
+          for (let j = 0; j < m; j++) A[i * m + j] += phi[i] * phi[j];
+        }
+        n++;
+      }
+    }
+    if (n < m * 3) throw new Error('補正に使う画素が少なすぎます(' + n + ' 個)。範囲を広げてください');
+    return { coef: solveLinear(A, b, m), terms, order, n };
+  }
+
+  function evalPolynomial(fit, W, H) {
+    const out = new Float64Array(W * H), { coef, terms, order } = fit;
+    const px = new Float64Array(order + 1), py = new Float64Array(order + 1);
+    for (let y = 0; y < H; y++) {
+      const Y = normCoord(y, H);
+      py[0] = 1; for (let k = 1; k <= order; k++) py[k] = py[k - 1] * Y;
+      for (let x = 0; x < W; x++) {
+        const X = normCoord(x, W);
+        px[0] = 1; for (let k = 1; k <= order; k++) px[k] = px[k - 1] * X;
+        let s = 0;
+        for (let t = 0; t < terms.length; t++) s += coef[t] * px[terms[t][0]] * py[terms[t][1]];
+        out[y * W + x] = s;
+      }
+    }
+    return out;
+  }
+
+  // 四角形(x0,y0 を含み x1,y1 を含まない。画素単位)から、画素ごとの印を作る。
+  function rectsMask(rects, W, H) {
+    const m = new Uint8Array(W * H);
+    for (const r of rects) {
+      const x0 = Math.max(0, Math.round(Math.min(r.x0, r.x1))), x1 = Math.min(W, Math.round(Math.max(r.x0, r.x1)));
+      const y0 = Math.max(0, Math.round(Math.min(r.y0, r.y1))), y1 = Math.min(H, Math.round(Math.max(r.y0, r.y1)));
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) m[y * W + x] = 1;
+    }
+    return m;
+  }
+
+  function maskMean(z, mask) {
+    let s = 0, n = 0;
+    for (let i = 0; i < z.length; i++) if ((!mask || mask[i]) && isFinite(z[i])) { s += z[i]; n++; }
+    return n ? s / n : NaN;
+  }
+
+  // 傾き補正。fitMask が null なら画像全体で補正。
+  // shiftMask: null なら「補正に使った範囲の平均を 0」、配列なら「その範囲の平均を 0」。
+  function flatten(z, W, H, fitMask, order, shiftMask) {
+    const fit = fitPolynomial(z, W, H, fitMask, order);
+    const surf = evalPolynomial(fit, W, H);
+    const out = new Float64Array(W * H);
+    for (let i = 0; i < out.length; i++) out[i] = z[i] - surf[i];
+    const shift = maskMean(out, shiftMask || fitMask);
+    for (let i = 0; i < out.length; i++) out[i] -= shift;
+    let smin = Infinity, smax = -Infinity;
+    for (let i = 0; i < surf.length; i++) { if (surf[i] < smin) smin = surf[i]; if (surf[i] > smax) smax = surf[i]; }
+    return { out, fit, surfaceRange: smax - smin, usedPixels: fit.n, shift };
+  }
+
+  function rectBounds(r, W, H) {
+    return {
+      x0: Math.max(0, Math.round(Math.min(r.x0, r.x1))), x1: Math.min(W, Math.round(Math.max(r.x0, r.x1))),
+      y0: Math.max(0, Math.round(Math.min(r.y0, r.y1))), y1: Math.min(H, Math.round(Math.max(r.y0, r.y1)))
+    };
+  }
+
+  // 四角形(null なら画像全体)の中の値を配列で返す
+  function valuesIn(z, W, H, rect) {
+    const b = rect ? rectBounds(rect, W, H) : { x0: 0, x1: W, y0: 0, y1: H };
+    const v = [];
+    for (let y = b.y0; y < b.y1; y++) for (let x = b.x0; x < b.x1; x++) { const t = z[y * W + x]; if (isFinite(t)) v.push(t); }
+    return v;
+  }
+
+  // 表面粗さ。算術平均粗さ = 平均からのずれの絶対値の平均。二乗平均平方根粗さ = ずれの二乗の平均の平方根。
+  function roughness(z, W, H, rect) {
+    const v = valuesIn(z, W, H, rect), n = v.length;
+    if (!n) return { n: 0, mean: NaN, sa: NaN, sq: NaN, sz: NaN, max: NaN, min: NaN };
+    let s = 0, mn = Infinity, mx = -Infinity;
+    for (const t of v) { s += t; if (t < mn) mn = t; if (t > mx) mx = t; }
+    const mean = s / n;
+    let a = 0, q = 0;
+    for (const t of v) { const d = t - mean; a += Math.abs(d); q += d * d; }
+    return { n, mean, sa: a / n, sq: Math.sqrt(q / n), sz: mx - mn, max: mx, min: mn };
+  }
+
+  // 方法(ア): 頂上の範囲と床の範囲の、平均の差
+  function heightByRects(z, W, H, topRect, floorRect) {
+    const t = roughness(z, W, H, topRect), f = roughness(z, W, H, floorRect);
+    return { top: t.mean, floor: f.mean, height: t.mean - f.mean, topSd: t.sq, floorSd: f.sq, nTop: t.n, nFloor: f.n };
+  }
+
+  function percentile(sorted, p) {
+    if (!sorted.length) return NaN;
+    const k = (sorted.length - 1) * p, i = Math.floor(k), f = k - i;
+    return i + 1 < sorted.length ? sorted[i] * (1 - f) + sorted[i + 1] * f : sorted[i];
+  }
+
+  function makeHistogram(values, bins, lo, hi) {
+    const counts = new Float64Array(bins), w = (hi - lo) / bins;
+    for (const v of values) {
+      if (v < lo || v > hi) continue;
+      let k = Math.floor((v - lo) / w); if (k >= bins) k = bins - 1;
+      counts[k]++;
+    }
+    return { counts, lo, hi, width: w, bins };
+  }
+
+  function smoothCounts(c, sigmaBins) {
+    const n = c.length, r = Math.ceil(sigmaBins * 3), k = [];
+    let ks = 0;
+    for (let i = -r; i <= r; i++) { const w = Math.exp(-0.5 * (i / sigmaBins) ** 2); k.push(w); ks += w; }
+    const out = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let s = 0;
+      for (let j = -r; j <= r; j++) { const q = i + j; if (q >= 0 && q < n) s += c[q] * k[j + r]; }
+      out[i] = s / ks;
+    }
+    return out;
+  }
+
+  function otsuIndex(counts) {
+    let total = 0, sumAll = 0;
+    for (let i = 0; i < counts.length; i++) { total += counts[i]; sumAll += i * counts[i]; }
+    let wB = 0, sumB = 0, best = -1, bestT = 0;
+    for (let t = 0; t < counts.length - 1; t++) {
+      wB += counts[t]; sumB += t * counts[t];
+      const wF = total - wB;
+      if (wB === 0 || wF === 0) continue;
+      const mB = sumB / wB, mF = (sumAll - sumB) / wF;
+      const between = wB * wF * (mB - mF) ** 2;
+      if (between > best) { best = between; bestT = t; }
+    }
+    return bestT;
+  }
+
+  // 山の中心: 山の頂上から半値幅の範囲を、度数で重みを付けた平均で求める
+  function peakCentroid(raw, smooth, from, to, lo, width) {
+    let pk = from;
+    for (let i = from; i <= to; i++) if (smooth[i] > smooth[pk]) pk = i;
+    const half = smooth[pk] * 0.5;
+    let a = pk, b = pk;
+    while (a - 1 >= from && smooth[a - 1] >= half) a--;
+    while (b + 1 <= to && smooth[b + 1] >= half) b++;
+    let s = 0, w = 0;
+    for (let i = a; i <= b; i++) { s += (lo + (i + 0.5) * width) * raw[i]; w += raw[i]; }
+    return { center: w ? s / w : lo + (pk + 0.5) * width, peakBin: pk, from: a, to: b, peakCount: smooth[pk] };
+  }
+
+  // 方法(イ): ヒストグラムの床の山と頂上の山の差(推定)
+  function heightAuto(z, W, H, rect) {
+    const v = valuesIn(z, W, H, rect);
+    if (v.length < 100) throw new Error('画素が少なすぎます');
+    const sorted = Float64Array.from(v).sort();
+    const lo = percentile(sorted, 0.002), hi = percentile(sorted, 0.998);
+    if (!(hi > lo)) throw new Error('高さにばらつきがありません');
+    const bins = 256, hist = makeHistogram(v, bins, lo, hi);
+    const smooth = smoothCounts(hist.counts, 2);
+    const t = otsuIndex(smooth);
+    const floorPk = peakCentroid(hist.counts, smooth, 0, t, lo, hist.width);
+    const topPk = peakCentroid(hist.counts, smooth, t + 1, bins - 1, lo, hist.width);
+    return {
+      floor: floorPk.center, top: topPk.center, height: topPk.center - floorPk.center,
+      threshold: lo + (t + 1) * hist.width, hist, smooth, floorPeak: floorPk, topPeak: topPk,
+      midpoint: (floorPk.center + topPk.center) / 2
+    };
+  }
+
+  function boxSmooth3(z, W, H) {
+    const out = new Float64Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let s = 0, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        s += z[yy * W + xx]; n++;
+      }
+      out[y * W + x] = s / n;
+    }
+    return out;
+  }
+
+  // 高さの中間値で二値化し、ピラーの個数と中心間の間隔を求める。
+  // pxX, pxY: 1 画素の大きさ(ナノメートル)。threshold が未指定なら、床の山と頂上の山の中間。
+  function countPillars(z, W, H, pxX, pxY, rect, threshold) {
+    const auto = heightAuto(z, W, H, rect);
+    const thr = (threshold === undefined || threshold === null || isNaN(threshold)) ? auto.midpoint : threshold;
+    const zs = boxSmooth3(z, W, H);
+    const b = rect ? rectBounds(rect, W, H) : { x0: 0, x1: W, y0: 0, y1: H };
+    const label = new Int32Array(W * H).fill(0);
+    const comps = [];
+    const stack = new Int32Array(W * H);
+    for (let y = b.y0; y < b.y1; y++) for (let x = b.x0; x < b.x1; x++) {
+      const i0 = y * W + x;
+      if (label[i0] || !(zs[i0] > thr)) continue;
+      const id = comps.length + 1;
+      let sp = 0, area = 0, sx = 0, sy = 0, edge = false;
+      stack[sp++] = i0; label[i0] = id;
+      while (sp) {
+        const i = stack[--sp], cx = i % W, cy = (i - cx) / W;
+        area++; sx += cx; sy += cy;
+        if (cx === b.x0 || cy === b.y0 || cx === b.x1 - 1 || cy === b.y1 - 1) edge = true;
+        const nb = [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]];
+        for (const [nx, ny] of nb) {
+          if (nx < b.x0 || ny < b.y0 || nx >= b.x1 || ny >= b.y1) continue;
+          const j = ny * W + nx;
+          if (label[j] || !(zs[j] > thr)) continue;
+          label[j] = id; stack[sp++] = j;
+        }
+      }
+      comps.push({ area, cx: sx / area + 0.5, cy: sy / area + 0.5, edge });
+    }
+    const innerAreas = comps.filter(c => !c.edge).map(c => c.area).sort((a, c) => a - c);
+    const allAreas = comps.map(c => c.area).sort((a, c) => a - c);
+    const ref = innerAreas.length ? innerAreas[Math.floor(innerAreas.length / 2)] : (allAreas.length ? allAreas[Math.floor(allAreas.length / 2)] : 0);
+    const minArea = Math.max(4, ref * 0.3);
+    const kept = comps.filter(c => c.area >= minArea);
+    // 最近接の中心間隔(縁に接しないものがあればそれだけで平均)
+    const base = kept.filter(c => !c.edge).length >= 3 ? kept.filter(c => !c.edge) : kept;
+    let spacing = NaN;
+    if (kept.length >= 2 && base.length >= 1) {
+      let s = 0, n = 0;
+      for (const c of base) {
+        let d = Infinity;
+        for (const o of kept) { if (o === c) continue; const dd = Math.hypot((o.cx - c.cx) * pxX, (o.cy - c.cy) * pxY); if (dd < d) d = dd; }
+        if (isFinite(d)) { s += d; n++; }
+      }
+      spacing = n ? s / n : NaN;
+    }
+    // 行(縦座標の群れ)と、1 行あたりの最大個数
+    let rows = 0, perRow = 0;
+    if (kept.length && isFinite(spacing)) {
+      const ys = kept.map(c => c).sort((a, c) => a.cy - c.cy);
+      const groups = [[ys[0]]];
+      for (let i = 1; i < ys.length; i++) {
+        if ((ys[i].cy - ys[i - 1].cy) * pxY > spacing * 0.5) groups.push([ys[i]]); else groups[groups.length - 1].push(ys[i]);
+      }
+      rows = groups.length; perRow = Math.max(...groups.map(g => g.length));
+    }
+    return {
+      count: kept.length, countInner: kept.filter(c => !c.edge).length, spacing, rows, perRow,
+      threshold: thr, centers: kept.map(c => ({ x: c.cx, y: c.cy, edge: c.edge })), minArea, auto
+    };
+  }
+
+  // ---------- 読み込み ----------
+  // 数値の表(コンマ・タブ・セミコロン・空白区切り)。数値だけの行がいちばん長く続く部分を表として読む。
+  function parseMatrixText(text) {
+    const lines = text.replace(/^﻿/, '').split(/\r?\n/);
+    const rows = lines.map(line => {
+      const s = line.trim();
+      if (!s) return null;
+      let toks = s.split(/[\t,;]+/);
+      if (toks.length === 1) toks = s.split(/\s+/);
+      const nums = [];
+      for (let t of toks) {
+        t = t.trim();
+        if (t === '') continue;
+        const v = Number(t);
+        if (!isFinite(v)) return null;
+        nums.push(v);
+      }
+      return nums.length ? nums : null;
+    });
+    let best = { start: -1, len: 0, w: 0 }, i = 0;
+    while (i < rows.length) {
+      if (!rows[i]) { i++; continue; }
+      const w = rows[i].length; let j = i;
+      while (j < rows.length && rows[j] && rows[j].length === w) j++;
+      if (j - i > best.len) best = { start: i, len: j - i, w };
+      i = j;
+    }
+    if (best.len < 4 || best.w < 4) throw new Error('数値の行列(4行4列以上)が見つかりません');
+    const data = new Float64Array(best.len * best.w);
+    for (let r = 0; r < best.len; r++) data.set(rows[best.start + r], r * best.w);
+    const skipped = lines.filter(l => l.trim() !== '').length - best.len;
+    return { data, W: best.w, H: best.len, note: skipped > 0 ? ('表の外の ' + skipped + ' 行を読み飛ばしました') : '' };
+  }
+
+  // .xqd / .xqdx の実験的な読み込み(倍率は未確定。README の「.xqd の直接読み込み」を参照)
+  // 先頭 "SPIZ"、0x18 に説明部分の長さ、その後ろは 16 ビット整数(リトルエンディアン)が 512 個 × 256 行。
+  // 偶数番目の列と奇数番目の列は、同じ高さの信号を横に半画素ずらして標本化したもの。
+  // mode 0: 偶数番目だけ(256×256) / 1: 奇数番目だけ(256×256) / 2: 交互に並べる(512×256。画素の横の大きさは半分)
+  // .xqdx は、説明部分つきの塊が 2 つ並ぶ形。2 つのデータが一致するなら、1 つ目だけを使う。
+  function parseXqd(buf, mode) {
+    const u8 = new Uint8Array(buf);
+    const magicAt = o => o + 4 <= u8.length && String.fromCharCode(u8[o], u8[o + 1], u8[o + 2], u8[o + 3]) === 'SPIZ';
+    if (!magicAt(0)) throw new Error('.xqd の先頭が SPIZ ではありません。別の形式のファイルです');
+    let dv = new DataView(buf), blockLen = buf.byteLength, duplicate = null;
+    if (buf.byteLength % 2 === 0 && magicAt(buf.byteLength / 2)) {   // .xqdx: 同じ大きさの塊が 2 つ
+      blockLen = buf.byteLength / 2;
+      const hs0 = dv.getUint32(0x18, true);
+      let same = true;
+      for (let i = hs0; i < blockLen; i++) if (u8[i] !== u8[blockLen + i]) { same = false; break; }
+      duplicate = same ? 'same' : 'different';
+      dv = new DataView(buf, 0, blockLen);
+    }
+    const headerSize = dv.getUint32(0x18, true);
+    if (headerSize < 64 || headerSize >= blockLen) throw new Error('説明部分の長さが読み取れません');
+    const nSamples = Math.floor((blockLen - headerSize) / 2);
+    const side = Math.round(Math.sqrt(nSamples / 2));
+    if (side * side * 2 !== nSamples) throw new Error('画素数が 256×512 の形になりません(' + nSamples + ' 個)。未対応の並べ方です');
+    const m = mode === 2 ? 2 : (mode === 1 ? 1 : 0);
+    let data, W, H;
+    if (m === 2) {
+      W = side * 2; H = side; data = new Float64Array(W * H);
+      for (let i = 0; i < data.length; i++) data[i] = dv.getInt16(headerSize + i * 2, true);
+    } else {
+      W = side; H = side; data = new Float64Array(W * H);
+      for (let i = 0; i < data.length; i++) data[i] = dv.getInt16(headerSize + (2 * i + m) * 2, true);
+    }
+    const pitch = dv.getFloat64(0xa0, true);         // 説明部分の 0xA0: 1 画素の大きさ(ナノメートル)と推定。256 画素で走査範囲
+    const zFactor = dv.getFloat64(0xa8, true);       // 説明部分の 0xA8: 高さ 1 カウントの大きさ(ナノメートル)の候補。10200 ÷ 32767 と一致。未確定
+    return {
+      data, W, H, headerSize, mode: m, pxRatio: m === 2 ? 2 : 1, duplicate,
+      pitchNm: (pitch > 0.01 && pitch < 1e5) ? pitch : NaN,
+      zFactorNm: (zFactor > 1e-4 && zFactor < 1e3) ? zFactor : NaN,
+      scanNm: (pitch > 0.01 && pitch < 1e5) ? pitch * side : NaN,
+      date: { y: dv.getUint16(0x1c, true), mo: dv.getUint16(0x1e, true), d: dv.getUint16(0x20, true), h: dv.getUint16(0x22, true), mi: dv.getUint16(0x24, true) }
+    };
+  }
+
+  return {
+    polyTerms, fitPolynomial, evalPolynomial, rectsMask, maskMean, flatten, rectBounds, valuesIn, roughness,
+    heightByRects, heightAuto, countPillars, makeHistogram, percentile, parseMatrixText, parseXqd
+  };
+})();
+/* ===== 計算の部分、ここまで ===== */
+
+</script>
+<script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
+const S = {
+  W: 0, H: 0, pxRatio: 1, raw: null, orig: null, corr: null, name: '', source: '', xqd: null,
+  rects: [], nextId: 1, sel: null,
+  rangeB: { auto: true, min: 0, max: 1 }, rangeA: { auto: true, min: 0, max: 1 },
+  res: { rough: null, hRect: null, hAuto: null, count: null, flat: null }, tab: 'img',
+  d3: { az: -0.6, el: 0.75, zoom: 1, exag: 4 }
+};
+const NAMES = ['頂上', '床', '補正用の床', '粗さ用'];
+const COLORS = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#6d4c41', '#d81b60'];
+const f1 = (v, d) => (isFinite(v) ? v.toFixed(d === undefined ? 1 : d) : '—');
+
+function toast(msg, err) {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.style.display = 'block';
+  clearTimeout(toast.h); toast.h = setTimeout(() => { t.style.display = 'none'; }, err ? 7000 : 3500);
+}
+function scanNm() { return Number($('scanVal').value) * Number($('scanUnit').value); }
+function pxNm() { return S.W ? scanNm() / S.W : NaN; }
+function pyNm() { return pxNm() * S.pxRatio; }
+function zFactor() { const u = $('zUnit').value; return u === 'custom' ? Number($('zFactor').value) : Number(u); }
+function cur() { return S.corr || S.orig; }
+
+// ---------- 色 ----------
+const LUT = (() => {
+  const stops = [[0, 68, 1, 84], [0.25, 59, 82, 139], [0.5, 33, 145, 140], [0.75, 94, 201, 98], [1, 253, 231, 37]];
+  const l = new Uint8ClampedArray(256 * 3);
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255; let k = 0; while (k < stops.length - 2 && t > stops[k + 1][0]) k++;
+    const a = stops[k], b = stops[k + 1], u = (t - a[0]) / (b[0] - a[0]);
+    for (let c = 0; c < 3; c++) l[i * 3 + c] = a[c + 1] + (b[c + 1] - a[c + 1]) * u;
+  }
+  return l;
+})();
+function colorOf(t) { const i = Math.max(0, Math.min(255, Math.round(t * 255))); return [LUT[i * 3], LUT[i * 3 + 1], LUT[i * 3 + 2]]; }
+
+// ---------- 読み込み ----------
+function afterLoad(label) {
+  S.corr = null; S.res = { rough: null, hRect: null, hAuto: null, count: null, flat: null };
+  S.rangeB.auto = S.rangeA.auto = true;
+  $('imgEmpty').style.display = 'none'; $('imgPair').style.display = 'grid'; $('imgHint').style.display = 'block';
+  $('histEmpty').style.display = 'none'; $('chist').style.display = 'block'; $('histHint').style.display = 'block';
+  $('d3Empty').style.display = 'none'; $('d3Wrap').style.display = 'block';
+  $('loadInfo').textContent = label; $('flatInfo').textContent = '補正はまだ行っていません。';
+  ['hRectOut', 'hAutoOut', 'countOut'].forEach(i => { $(i).className = 'help'; });
+  $('hRectOut').textContent = '「高さを出す」を押すと表示されます。'; $('hAutoOut').textContent = '「ヒストグラムから推定する」を押すと表示されます。'; $('countOut').textContent = '「ピラーを数える」を押すと表示されます。';
+  refreshAll();
+}
+function applyScale() {
+  if (!S.raw) return;
+  const k = zFactor();
+  if (!(k > 0)) { toast('高さの倍率は 0 より大きい数を入れてください', true); return; }
+  S.orig = Float64Array.from(S.raw, v => v * k);
+}
+function infoText() {
+  const px = pxNm();
+  return (S.name || '') + ' を読み込みました。画像 ' + S.W + ' × ' + S.H + ' 画素 / 走査範囲 ' + f1(scanNm() / 1000, 3) + ' マイクロメートル / 1画素 = 横 ' + f1(px, 2) + ' × 縦 ' + f1(px * S.pxRatio, 2) + ' ナノメートル' + (S.note ? ' / ' + S.note : '');
+}
+async function loadTable(file) {
+  try {
+    const text = await file.text();
+    const m = AFMCore.parseMatrixText(text);
+    S.W = m.W; S.H = m.H; S.raw = m.data; S.name = file.name; S.source = '数値の表'; S.xqd = null; S.note = m.note; S.pxRatio = 1;
+    $('xqdBanner').style.display = 'none'; $('chRow').style.display = 'none';
+    S.rects = S.rects.filter(r => r.x1 <= S.W && r.y1 <= S.H);
+    applyScale(); afterLoad(infoText());
+    toast(file.name + ' を読み込みました(' + m.W + ' × ' + m.H + ')');
+  } catch (e) { toast('読み込めませんでした: ' + e.message, true); }
+}
+async function loadXqd(file, keepBuf) {
+  try {
+    const buf = keepBuf || await file.arrayBuffer();
+    const x = AFMCore.parseXqd(buf, Number($('xqdCh').value));
+    S.W = x.W; S.H = x.H; S.pxRatio = x.pxRatio; S.raw = x.data; S.name = file.name; S.source = '.xqd(実験的)'; S.note = '実験的・値は未確定'; S.xqd = { file, buf, info: x };
+    if (isFinite(x.scanNm)) { $('scanUnit').value = '1000'; $('scanVal').value = (x.scanNm / 1000).toFixed(4); }
+    if (isFinite(x.zFactorNm)) { $('zUnit').value = 'custom'; $('zFactor').value = x.zFactorNm.toFixed(4); $('zFactor').disabled = false; }
+    $('xqdBanner').style.display = 'block'; $('chRow').style.display = 'flex';
+    const xi = $('xqdxInfo');
+    if (x.duplicate) {
+      xi.style.display = 'block';
+      xi.textContent = x.duplicate === 'same' ? '.xqdx です。.xqd と同じ画像のデータが 2 回入っています(2 つのデータは一致しています)。1 つ目だけを使います。' : '.xqdx です。2 つのデータが一致しません。1 つ目だけを使います。2 つ目は未確認です。';
+    } else xi.style.display = 'none';
+    S.rects = []; S.sel = null;
+    applyScale(); afterLoad(infoText());
+    toast('.xqd を実験的に読み込みました。値は未確定です', false);
+  } catch (e) { toast('読み込めませんでした: ' + e.message, true); }
+}
+$('fileTable').addEventListener('change', e => { if (e.target.files[0]) loadTable(e.target.files[0]); e.target.value = ''; });
+$('fileXqd').addEventListener('change', e => { if (e.target.files[0]) loadXqd(e.target.files[0]); e.target.value = ''; });
+$('xqdCh').addEventListener('change', () => { if (S.xqd) loadXqd(S.xqd.file, S.xqd.buf); });
+['dragover', 'drop'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault();
+  if (ev === 'drop' && e.dataTransfer.files[0]) { const f = e.dataTransfer.files[0]; (/\.xqd$/i.test(f.name) ? loadXqd : loadTable)(f); }
+}));
+function onScaleChange() {
+  $('zFactor').disabled = $('zUnit').value !== 'custom';
+  if (!S.raw) return;
+  applyScale(); S.corr = null; S.res.flat = null; $('flatInfo').textContent = '読み込みの条件を変えたので、補正を元に戻しました。';
+  $('loadInfo').textContent = infoText(); refreshAll();
+}
+['scanVal', 'scanUnit', 'zUnit', 'zFactor'].forEach(i => $(i).addEventListener('change', onScaleChange));
+
+// ---------- 四角形 ----------
+function addRect(x0, y0, x1, y1) {
+  const idx = S.rects.length;
+  const nm = idx < NAMES.length ? NAMES[idx] : '範囲' + (idx + 1);
+  const r = { id: S.nextId++, name: nm, x0, y0, x1, y1, fit: /床/.test(nm), color: COLORS[idx % COLORS.length] };
+  S.rects.push(r); S.sel = r.id; rebuildRectUi(); return r;
+}
+function rectById(id) { return S.rects.find(r => r.id === id); }
+function selOptions(sel, withAll, keep) {
+  const v = keep !== undefined ? keep : sel.value; sel.innerHTML = '';
+  if (withAll) { const o = document.createElement('option'); o.value = 'all'; o.textContent = '画像全体'; sel.appendChild(o); }
+  for (const r of S.rects) { const o = document.createElement('option'); o.value = r.id; o.textContent = r.name; sel.appendChild(o); }
+  if ([...sel.options].some(o => o.value === v)) sel.value = v;
+}
+function rebuildRectUi() {
+  const box = $('rectList'); box.innerHTML = '';
+  if (!S.rects.length) { const p = document.createElement('p'); p.className = 'help'; p.textContent = 'まだ四角形がありません。画像の上でドラッグしてください。'; box.appendChild(p); }
+  for (const r of S.rects) {
+    const d = document.createElement('div'); d.className = 'ritem' + (r.id === S.sel ? ' sel' : '');
+    const w = Math.round(Math.abs(r.x1 - r.x0)), h = Math.round(Math.abs(r.y1 - r.y0));
+    d.innerHTML = '<div class="l1"><span class="sw"></span><input type="text" aria-label="四角形の名前"><button class="x" title="この四角形を消す">✕</button></div>' +
+      '<div class="l2"><label><input type="checkbox" class="fit"> 補正に使う</label><span class="sz"></span></div>';
+    d.querySelector('.sw').style.background = r.color;
+    const nameIn = d.querySelector('input[type=text]'); nameIn.value = r.name;
+    nameIn.addEventListener('input', () => { r.name = nameIn.value; drawAll(); refreshRectSelects(); });
+    nameIn.addEventListener('focus', () => { S.sel = r.id; [...box.children].forEach(c => c.classList.remove('sel')); d.classList.add('sel'); drawAll(); });
+    d.querySelector('.fit').checked = r.fit; d.querySelector('.fit').addEventListener('change', e => { r.fit = e.target.checked; });
+    d.querySelector('.sz').textContent = w + ' × ' + h + ' 画素(' + f1(w * pxNm(), 0) + ' × ' + f1(h * pyNm(), 0) + ' ナノメートル)';
+    d.querySelector('.x').addEventListener('click', () => { S.rects = S.rects.filter(q => q.id !== r.id); if (S.sel === r.id) S.sel = null; rebuildRectUi(); drawAll(); });
+    box.appendChild(d);
+  }
+  refreshRectSelects(); updateResults();
+}
+function refreshRectSelects() {
+  const keepTop = $('selTop').value, keepFloor = $('selFloor').value, ids = S.rects.map(r => String(r.id));
+  selOptions($('selTop'), false); selOptions($('selFloor'), false);
+  $('selTop').value = ids.includes(keepTop) ? keepTop : (ids[0] || '');
+  $('selFloor').value = ids.includes(keepFloor) && keepFloor !== $('selTop').value ? keepFloor : (ids[1] || ids[0] || '');
+  selOptions($('shiftRect'), false); selOptions($('autoRange'), true); selOptions($('countRange'), true); selOptions($('d3Range'), true);
+}
+$('rectClear').addEventListener('click', () => { S.rects = []; S.sel = null; rebuildRectUi(); drawAll(); });
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Delete') && S.sel && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) {
+    S.rects = S.rects.filter(r => r.id !== S.sel); S.sel = null; rebuildRectUi(); drawAll();
+  }
+});
+function rangeRect(sel) { return sel.value === 'all' ? null : rectById(Number(sel.value)) || null; }
+
+// ---------- 画像の描画 ----------
+const off = { before: document.createElement('canvas'), after: document.createElement('canvas') };
+const view = { before: { sx: 1, sy: 1 }, after: { sx: 1, sy: 1 } };
+function autoRange(z) {
+  const v = Float64Array.from(z).sort();
+  return [AFMCore.percentile(v, 0.005), AFMCore.percentile(v, 0.995)];
+}
+function paneRange(rg, z) {
+  if (rg.auto) { const a = autoRange(z); rg.min = a[0]; rg.max = a[1]; }
+  return rg;
+}
+function paintOff(cv, z, rg) {
+  cv.width = S.W; cv.height = S.H;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(S.W, S.H), span = rg.max - rg.min || 1;
+  for (let i = 0; i < z.length; i++) {
+    let t = (z[i] - rg.min) / span; t = t < 0 ? 0 : t > 1 ? 1 : t; const k = Math.round(t * 255);
+    img.data[i * 4] = LUT[k * 3]; img.data[i * 4 + 1] = LUT[k * 3 + 1]; img.data[i * 4 + 2] = LUT[k * 3 + 2]; img.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+function drawBar(id) {
+  const c = $(id), g = c.getContext('2d');
+  for (let x = 0; x < c.width; x++) { const col = colorOf(x / (c.width - 1)); g.fillStyle = 'rgb(' + col.join(',') + ')'; g.fillRect(x, 0, 1, c.height); }
+}
+function drawPane(key) {
+  const cvId = key === 'before' ? 'cvBefore' : 'cvAfter', cv = $(cvId), rg = key === 'before' ? S.rangeB : S.rangeA;
+  const z = key === 'before' ? S.orig : cur();
+  paneRange(rg, z);
+  $(key === 'before' ? 'minBefore' : 'minAfter').value = +rg.min.toFixed(3); $(key === 'before' ? 'maxBefore' : 'maxAfter').value = +rg.max.toFixed(3);
+  paintOff(off[key], z, rg);
+  const avail = Math.max(200, cv.parentElement.clientWidth || 400);
+  const s = Math.max(0.5, Math.min(avail / S.W, 560 / (S.H * S.pxRatio))), sy0 = s * S.pxRatio; view[key].sx = s; view[key].sy = sy0;
+  cv.width = Math.round(S.W * s); cv.height = Math.round(S.H * sy0);
+  const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.drawImage(off[key], 0, 0, cv.width, cv.height);
+  for (const r of S.rects) {
+    const x = Math.min(r.x0, r.x1) * s, y = Math.min(r.y0, r.y1) * sy0, w = Math.abs(r.x1 - r.x0) * s, h = Math.abs(r.y1 - r.y0) * sy0;
+    ctx.fillStyle = r.color + '33'; ctx.fillRect(x, y, w, h);
+    ctx.lineWidth = r.id === S.sel ? 3 : 2; ctx.strokeStyle = r.color; ctx.strokeRect(x, y, w, h);
+    ctx.font = '12px sans-serif'; const tw = ctx.measureText(r.name).width + 8;
+    ctx.fillStyle = r.color; ctx.fillRect(x, Math.max(0, y - 16), tw, 16); ctx.fillStyle = '#fff'; ctx.fillText(r.name, x + 4, Math.max(0, y - 16) + 12);
+    if (r.id === S.sel) { ctx.fillStyle = '#fff'; ctx.strokeStyle = r.color; ctx.lineWidth = 2; for (const [cx, cy] of [[x, y], [x + w, y], [x, y + h], [x + w, y + h]]) { ctx.fillRect(cx - 4, cy - 4, 8, 8); ctx.strokeRect(cx - 4, cy - 4, 8, 8); } }
+  }
+  if (key === 'after' && S.res.count && S.res.count.centers) {
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
+    for (const c of S.res.count.centers) { const x = c.x * s, y = c.y * sy0; ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke(); }
+  }
+}
+function drawAll() {
+  if (!S.orig) return;
+  drawBar('barBefore'); drawBar('barAfter');
+  if (S.tab === 'img') { drawPane('before'); drawPane('after'); }
+  $('afterTag').textContent = S.corr ? '(' + ['', '一次', '二次', '三次'][S.res.flat.order] + 'の補正済み)' : '(まだ補正していません。補正前と同じ画像です)';
+  if (S.tab === 'hist') drawHist();
+  if (S.tab === 'd3') draw3D();
+}
+function bindRange(key) {
+  const rg = key === 'before' ? S.rangeB : S.rangeA, K = key === 'before' ? 'Before' : 'After';
+  const onCh = () => { rg.auto = false; rg.min = Number($('min' + K).value); rg.max = Number($('max' + K).value); drawAll(); };
+  $('min' + K).addEventListener('change', onCh); $('max' + K).addEventListener('change', onCh);
+  $('auto' + K).addEventListener('click', () => { rg.auto = true; drawAll(); });
+}
+bindRange('before'); bindRange('after');
+
+// ---------- 画像の上のマウス操作 ----------
+function attachPointer(key) {
+  const cv = $(key === 'before' ? 'cvBefore' : 'cvAfter'), ro = $(key === 'before' ? 'roBefore' : 'roAfter');
+  let drag = null;
+  const pos = e => { const b = cv.getBoundingClientRect(), k = cv.width / (b.width || 1); return { x: (e.clientX - b.left) * k / view[key].sx, y: (e.clientY - b.top) * k / view[key].sy }; };
+  const clamp = p => ({ x: Math.max(0, Math.min(S.W, p.x)), y: Math.max(0, Math.min(S.H, p.y)) });
+  function hit(p) {
+    const tolx = 8 / view[key].sx, toly = 8 / view[key].sy;
+    for (const r of [...S.rects].reverse()) {
+      const xa = Math.min(r.x0, r.x1), xb = Math.max(r.x0, r.x1), ya = Math.min(r.y0, r.y1), yb = Math.max(r.y0, r.y1);
+      for (const [cx, cy, c] of [[xa, ya, 'nw'], [xb, ya, 'ne'], [xa, yb, 'sw'], [xb, yb, 'se']]) if (Math.abs(p.x - cx) < tolx && Math.abs(p.y - cy) < toly) return { r, mode: 'resize', corner: c };
+      if (p.x >= xa && p.x <= xb && p.y >= ya && p.y <= yb) return { r, mode: 'move' };
+    }
+    return null;
+  }
+  cv.addEventListener('pointerdown', e => {
+    if (!S.orig) return; cv.setPointerCapture(e.pointerId);
+    const p = clamp(pos(e)), h = hit(p);
+    if (h) {
+      S.sel = h.r.id; const r = h.r;
+      if (h.mode === 'resize') { const xa = Math.min(r.x0, r.x1), xb = Math.max(r.x0, r.x1), ya = Math.min(r.y0, r.y1), yb = Math.max(r.y0, r.y1); r.x0 = xa; r.x1 = xb; r.y0 = ya; r.y1 = yb; }
+      drag = { mode: h.mode, r, corner: h.corner, start: p, orig: { x0: r.x0, y0: r.y0, x1: r.x1, y1: r.y1 } };
+    } else { drag = { mode: 'new', start: p, rect: null }; }
+    rebuildRectUi(); drawAll();
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!S.orig) return;
+    const p = clamp(pos(e)); const ix = Math.min(S.W - 1, Math.floor(p.x)), iy = Math.min(S.H - 1, Math.floor(p.y));
+    const z = key === 'before' ? S.orig : cur(), v = z[iy * S.W + ix], px = pxNm();
+    ro.textContent = '位置 x = ' + f1((ix + 0.5) * px, 0) + ' ナノメートル、y = ' + f1((iy + 0.5) * pyNm(), 0) + ' ナノメートル(画素 ' + ix + ', ' + iy + ') / 高さ = ' + f1(v, 2) + ' ナノメートル';
+    if (!drag) return;
+    if (drag.mode === 'new') {
+      if (!drag.rect && Math.hypot((p.x - drag.start.x) * view[key].sx, (p.y - drag.start.y) * view[key].sy) > 4) { drag.rect = addRect(drag.start.x, drag.start.y, p.x, p.y); }
+      if (drag.rect) { drag.rect.x0 = drag.start.x; drag.rect.y0 = drag.start.y; drag.rect.x1 = p.x; drag.rect.y1 = p.y; }
+    } else if (drag.mode === 'move') {
+      const r = drag.r, o = drag.orig, w = o.x1 - o.x0, h = o.y1 - o.y0;
+      let dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+      dx = Math.max(-o.x0, Math.min(S.W - o.x1, dx)); dy = Math.max(-o.y0, Math.min(S.H - o.y1, dy));
+      r.x0 = o.x0 + dx; r.x1 = r.x0 + w; r.y0 = o.y0 + dy; r.y1 = r.y0 + h;
+    } else {
+      const r = drag.r, c = drag.corner;
+      if (c.includes('w')) r.x0 = p.x; else r.x1 = p.x;
+      if (c.includes('n')) r.y0 = p.y; else r.y1 = p.y;
+    }
+    drawAll();
+  });
+  const end = () => {
+    if (!drag) return;
+    if (drag.mode === 'new' && drag.rect) { const r = drag.rect; r.x0 = Math.round(r.x0); r.y0 = Math.round(r.y0); r.x1 = Math.round(r.x1); r.y1 = Math.round(r.y1); }
+    if (drag.r) { const r = drag.r; r.x0 = Math.round(r.x0); r.y0 = Math.round(r.y0); r.x1 = Math.round(r.x1); r.y1 = Math.round(r.y1); }
+    const bad = S.rects.filter(r => Math.abs(r.x1 - r.x0) < 2 || Math.abs(r.y1 - r.y0) < 2);
+    if (bad.length) { S.rects = S.rects.filter(r => !bad.includes(r)); if (bad.some(r => r.id === S.sel)) S.sel = null; toast('2 画素より小さい四角形は消しました'); }
+    drag = null; rebuildRectUi(); drawAll();
+  };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  cv.addEventListener('pointerleave', () => { if (!drag) ro.innerHTML = '&nbsp;'; });
+}
+attachPointer('before'); attachPointer('after');
+
+// ---------- 傾き補正 ----------
+$('shiftMode').addEventListener('change', () => { $('shiftRectRow').style.display = $('shiftMode').value === 'rect' ? 'flex' : 'none'; });
+$('btnFlat').addEventListener('click', () => {
+  if (!S.orig) return toast('先に画像を読み込んでください', true);
+  try {
+    const order = Number($('order').value); let fitMask = null, fitName = '画像全体';
+    if ($('fitMode').value === 'rects') {
+      const rs = S.rects.filter(r => r.fit);
+      if (!rs.length) return toast('「補正に使う」に印の付いた四角形がありません。四角形を作って、印を付けてください', true);
+      fitMask = AFMCore.rectsMask(rs, S.W, S.H); fitName = '四角形(' + rs.map(r => r.name).join('、') + ')';
+    }
+    let shiftMask = null, shiftName = '補正に使った範囲の平均';
+    if ($('shiftMode').value === 'rect') {
+      const r = rectById(Number($('shiftRect').value)); if (!r) return toast('基準にする四角形を選んでください', true);
+      shiftMask = AFMCore.rectsMask([r], S.W, S.H); shiftName = '四角形「' + r.name + '」の平均';
+    }
+    const r = AFMCore.flatten(S.orig, S.W, S.H, fitMask, order, shiftMask);
+    S.corr = r.out; S.res.flat = { order, fitName, shiftName, used: r.usedPixels, surfRange: r.surfaceRange };
+    S.res.hAuto = null; S.res.count = null;
+    $('flatInfo').textContent = ['', '一次', '二次', '三次'][order] + 'で補正しました。補正に使った画素: ' + r.usedPixels + ' 個(' + fitName + ')。引いた曲面の高さの幅: ' + f1(r.surfaceRange, 1) + ' ナノメートル。高さの 0 の基準: ' + shiftName + '。';
+    refreshAll(); toast('補正しました');
+  } catch (e) { toast(e.message, true); }
+});
+$('btnUndo').addEventListener('click', () => {
+  if (!S.corr) return toast('補正はまだ行っていません');
+  S.corr = null; S.res.flat = null; S.res.hAuto = null; S.res.count = null; $('flatInfo').textContent = '補正を元に戻しました。'; refreshAll(); toast('補正を元に戻しました');
+});
+
+// ---------- 結果 ----------
+function dataLabel() { return S.corr ? '補正後の画像' : '補正前の画像(まだ補正していません)'; }
+function roughRows() {
+  if (!S.orig) return [];
+  const z = cur(), rows = [{ name: '画像全体', r: AFMCore.roughness(z, S.W, S.H, null) }];
+  for (const r of S.rects) rows.push({ name: r.name, r: AFMCore.roughness(z, S.W, S.H, r), rect: r });
+  return rows;
+}
+function updateResults() {
+  if (!S.orig) return;
+  const rows = roughRows(); S.res.rough = rows;
+  $('roughTag').textContent = '対象: ' + dataLabel();
+  let h = '<table><tr><th>範囲</th><th>画素数</th><th>算術平均粗さ(nm)</th><th>二乗平均平方根粗さ(nm)</th><th>最大高さ(nm)</th><th>平均の高さ(nm)</th></tr>';
+  for (const x of rows) h += '<tr><td>' + esc(x.name) + '</td><td>' + x.r.n + '</td><td>' + f1(x.r.sa, 2) + '</td><td>' + f1(x.r.sq, 2) + '</td><td>' + f1(x.r.sz, 2) + '</td><td>' + f1(x.r.mean, 2) + '</td></tr>';
+  $('roughOut').className = ''; $('roughOut').innerHTML = h + '</table><p class="help">算術平均粗さ = 平均からのずれの絶対値の平均。二乗平均平方根粗さ = ずれの二乗の平均の平方根。最大高さ = 最大値と最小値の差。</p>';
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+$('btnHeightRect').addEventListener('click', () => {
+  if (!S.orig) return toast('先に画像を読み込んでください', true);
+  const t = rectById(Number($('selTop').value)), f = rectById(Number($('selFloor').value));
+  if (!t || !f) return toast('頂上の範囲と床の範囲の、2 つの四角形を作ってください', true);
+  if (t.id === f.id) return toast('頂上と床に、別々の四角形を選んでください', true);
+  const r = AFMCore.heightByRects(cur(), S.W, S.H, t, f); S.res.hRect = Object.assign(r, { topName: t.name, floorName: f.name, label: dataLabel() });
+  $('hRectOut').className = '';
+  $('hRectOut').innerHTML = '<dl class="kv"><dt>ピラーの高さ</dt><dd><b>' + f1(r.height, 2) + ' ナノメートル</b>(頂上の平均 − 床の平均)</dd><dt>頂上「' + esc(t.name) + '」の平均</dt><dd>' + f1(r.top, 2) + ' ナノメートル(標準偏差 ' + f1(r.topSd, 2) + '、' + r.nTop + ' 画素)</dd><dt>床「' + esc(f.name) + '」の平均</dt><dd>' + f1(r.floor, 2) + ' ナノメートル(標準偏差 ' + f1(r.floorSd, 2) + '、' + r.nFloor + ' 画素)</dd><dt>対象</dt><dd>' + dataLabel() + '</dd></dl>';
+  if (!S.corr) toast('まだ補正していません。補正前の画像で計算しました');
+});
+$('btnHeightAuto').addEventListener('click', () => {
+  if (!S.orig) return toast('先に画像を読み込んでください', true);
+  try {
+    const rect = rangeRect($('autoRange')), r = AFMCore.heightAuto(cur(), S.W, S.H, rect);
+    S.res.hAuto = Object.assign(r, { rangeName: rect ? rect.name : '画像全体', label: dataLabel() });
+    $('hAutoOut').className = '';
+    $('hAutoOut').innerHTML = '<dl class="kv"><dt>ピラーの高さ(推定)</dt><dd><b>' + f1(r.height, 2) + ' ナノメートル</b>(頂上の山 − 床の山)</dd><dt>床の山の位置</dt><dd>' + f1(r.floor, 2) + ' ナノメートル</dd><dt>頂上の山の位置</dt><dd>' + f1(r.top, 2) + ' ナノメートル</dd><dt>山を分けた高さ</dt><dd>' + f1(r.threshold, 2) + ' ナノメートル(大津の方法)</dd><dt>対象</dt><dd>' + esc(S.res.hAuto.rangeName) + '、' + dataLabel() + '</dd></dl><p class="help">傾きが残っていると山が広がり、推定が外れます。先に傾き補正を行ってください。図は「高さの分布」タブにあります。</p>';
+    setTab('hist');
+  } catch (e) { toast(e.message, true); }
+});
+$('btnCount').addEventListener('click', () => {
+  if (!S.orig) return toast('先に画像を読み込んでください', true);
+  try {
+    const rect = rangeRect($('countRange')), px = pxNm();
+    const c = AFMCore.countPillars(cur(), S.W, S.H, px, pyNm(), rect); S.res.count = Object.assign(c, { rangeName: rect ? rect.name : '画像全体', label: dataLabel() });
+    $('countOut').className = '';
+    $('countOut').innerHTML = '<dl class="kv"><dt>ピラーの個数</dt><dd><b>' + c.count + ' 個</b>(縁に接しないもの ' + c.countInner + ' 個)</dd><dt>中心間の間隔(最も近い隣との平均)</dt><dd>' + f1(c.spacing, 1) + ' ナノメートル</dd><dt>縦方向の行数</dt><dd>' + c.rows + ' 行(1 行あたり最大 ' + c.perRow + ' 個)</dd><dt>二値化の高さ</dt><dd>' + f1(c.threshold, 2) + ' ナノメートル(床の山と頂上の山の中間)</dd><dt>対象</dt><dd>' + esc(S.res.count.rangeName) + '、' + dataLabel() + '</dd></dl><p class="help">補正後の画像に、数えたピラーの中心を白い十字で重ねています。行数と 1 行あたりの個数は、格子が画像の縦横に沿っている場合の目安です。傾いた格子や六方格子では、見た目と合わないことがあります。</p>';
+    setTab('img'); drawAll();
+    if (!S.corr) toast('まだ補正していません。補正前の画像で数えました');
+  } catch (e) { toast(e.message, true); }
+});
+
+// ---------- 高さの分布 ----------
+function drawHist() {
+  if (!S.orig) return;
+  const cv = $('chist'), dpr = window.devicePixelRatio || 1, cw = cv.clientWidth || 800, ch = 380;
+  cv.width = cw * dpr; cv.height = ch * dpr; const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = '#fff'; g.fillRect(0, 0, cw, ch);
+  const rect = S.res.hAuto && S.res.hAuto.rangeName !== '画像全体' ? S.rects.find(r => r.name === S.res.hAuto.rangeName) : null;
+  const z = cur(), vals = AFMCore.valuesIn(z, S.W, S.H, rect), sorted = Float64Array.from(vals).sort();
+  const lo = AFMCore.percentile(sorted, 0.002), hi = AFMCore.percentile(sorted, 0.998), H = AFMCore.makeHistogram(vals, 256, lo, hi);
+  const L = 62, R = 14, T = 16, B = 44, w = cw - L - R, h = ch - T - B; let mx = 0; for (const c of H.counts) if (c > mx) mx = c;
+  g.strokeStyle = '#9aa7b6'; g.lineWidth = 1; g.beginPath(); g.moveTo(L, T); g.lineTo(L, T + h); g.lineTo(L + w, T + h); g.stroke();
+  g.fillStyle = '#5b8def';
+  for (let i = 0; i < H.bins; i++) { const bh = H.counts[i] / (mx || 1) * h, x = L + i / H.bins * w; g.fillRect(x, T + h - bh, Math.max(1, w / H.bins), bh); }
+  g.fillStyle = '#1d2733'; g.font = '12px sans-serif'; g.textAlign = 'center';
+  for (let k = 0; k <= 5; k++) { const v = lo + (hi - lo) * k / 5, x = L + w * k / 5; g.fillText(v.toFixed(0), x, T + h + 16); g.beginPath(); g.moveTo(x, T + h); g.lineTo(x, T + h + 4); g.stroke(); }
+  g.fillText('高さ(ナノメートル)', L + w / 2, ch - 8);
+  g.save(); g.translate(14, T + h / 2); g.rotate(-Math.PI / 2); g.fillText('画素の数', 0, 0); g.restore();
+  g.textAlign = 'right'; for (let k = 0; k <= 4; k++) { const v = mx * k / 4; g.fillText(Math.round(v), L - 6, T + h - h * k / 4 + 4); }
+  const a = S.res.hAuto;
+  if (a) {
+    const X = v => L + (v - lo) / (hi - lo) * w;
+    const line = (v, col, label, dy) => { const x = X(v); g.strokeStyle = col; g.lineWidth = 2; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(x, T); g.lineTo(x, T + h); g.stroke(); g.setLineDash([]); g.fillStyle = col; g.textAlign = 'left'; g.font = 'bold 12px sans-serif'; g.fillText(label, x + 5, T + 14 + dy); };
+    line(a.floor, '#c62828', '床の山 ' + a.floor.toFixed(1), 0); line(a.top, '#2e7d32', '頂上の山 ' + a.top.toFixed(1), 0); line(a.threshold, '#7b8794', '山の分け目', 16);
+    g.fillStyle = '#1d2733'; g.textAlign = 'right'; g.font = 'bold 13px sans-serif'; g.fillText('ピラーの高さ(推定) = ' + a.height.toFixed(1) + ' ナノメートル', L + w - 4, T + 34);
+  }
+  g.textAlign = 'left';
+}
+
+// ---------- 三次元 ----------
+function draw3D() {
+  if (!S.orig) return;
+  const cv = $('c3d'), dpr = window.devicePixelRatio || 1, cw = cv.clientWidth || 800, ch = cv.clientHeight || 560;
+  cv.width = cw * dpr; cv.height = ch * dpr; const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = '#f7f9fb'; g.fillRect(0, 0, cw, ch);
+  const rect = rangeRect($('d3Range')), b = rect ? AFMCore.rectBounds(rect, S.W, S.H) : { x0: 0, x1: S.W, y0: 0, y1: S.H };
+  const w = b.x1 - b.x0, h = b.y1 - b.y0; if (w < 2 || h < 2) return;
+  const z = cur(), step = Math.max(1, Math.ceil(Math.max(w, h) / 110)), gw = Math.max(2, Math.floor(w / step)), gh = Math.max(2, Math.floor(h / step)), px = pxNm(), py = pyNm();
+  const zz = new Float32Array(gw * gh); let zmin = Infinity, zmax = -Infinity;
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+    let s = 0, n = 0;
+    for (let dy = 0; dy < step; dy++) for (let dx = 0; dx < step; dx++) { const x = b.x0 + i * step + dx, y = b.y0 + j * step + dy; if (x < S.W && y < S.H) { s += z[y * S.W + x]; n++; } }
+    const v = n ? s / n : 0; zz[j * gw + i] = v; if (v < zmin) zmin = v; if (v > zmax) zmax = v;
+  }
+  const exag = S.d3.exag, Lnm = Math.max(gw * step * px, gh * step * py), zmid = (zmin + zmax) / 2;
+  const cx = gw * step * px / 2, cy = gh * step * py / 2, ca = Math.cos(S.d3.az), sa = Math.sin(S.d3.az), ce = Math.cos(S.d3.el), se = Math.sin(S.d3.el);
+  const scale = S.d3.zoom * Math.min(cw, ch) * 0.62, ox = cw / 2, oy = ch / 2 + 20;
+  const PX = new Float32Array(gw * gh), PY = new Float32Array(gw * gh), PD = new Float32Array(gw * gh);
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+    const X = (i * step * px - cx) / Lnm, Y = (cy - j * step * py) / Lnm, Z = (zz[j * gw + i] - zmid) * exag / Lnm;
+    const a = X * ca - Y * sa, d = X * sa + Y * ca, k = j * gw + i;
+    PX[k] = ox + a * scale; PY[k] = oy - (Z * ce + d * se) * scale; PD[k] = d * ce - Z * se;
+  }
+  const nc = (gw - 1) * (gh - 1), order = new Int32Array(nc), dep = new Float32Array(nc);
+  for (let j = 0; j < gh - 1; j++) for (let i = 0; i < gw - 1; i++) { const c = j * (gw - 1) + i, k = j * gw + i; order[c] = c; dep[c] = PD[k] + PD[k + 1] + PD[k + gw] + PD[k + gw + 1]; }
+  const idx = Array.from(order).sort((p, q) => dep[q] - dep[p]);
+  const span = (zmax - zmin) || 1, dxn = step * px, dyn = step * py;
+  for (const c of idx) {
+    const i = c % (gw - 1), j = (c - i) / (gw - 1), k = j * gw + i;
+    const zc = (zz[k] + zz[k + 1] + zz[k + gw] + zz[k + gw + 1]) / 4;
+    const dzdx = ((zz[k + 1] - zz[k]) + (zz[k + gw + 1] - zz[k + gw])) / 2 * exag / dxn, dzdj = ((zz[k + gw] - zz[k]) + (zz[k + gw + 1] - zz[k + 1])) / 2 * exag / dyn;
+    let nx = -dzdx, ny = dzdj, nz = 1; const nl = Math.hypot(nx, ny, nz); nx /= nl; ny /= nl; nz /= nl;
+    const diff = Math.max(0, nx * -0.4 + ny * 0.4 + nz * 0.82), sh = 0.55 + 0.45 * diff;
+    const col = colorOf((zc - zmin) / span), fill = 'rgb(' + Math.round(col[0] * sh) + ',' + Math.round(col[1] * sh) + ',' + Math.round(col[2] * sh) + ')';
+    g.fillStyle = fill; g.strokeStyle = fill; g.lineWidth = 0.6;
+    g.beginPath(); g.moveTo(PX[k], PY[k]); g.lineTo(PX[k + 1], PY[k + 1]); g.lineTo(PX[k + gw + 1], PY[k + gw + 1]); g.lineTo(PX[k + gw], PY[k + gw]); g.closePath(); g.fill(); g.stroke();
+  }
+  g.fillStyle = '#1d2733'; g.font = '12px sans-serif'; g.textAlign = 'left';
+  g.fillText('範囲: ' + (rect ? rect.name : '画像全体') + '(横 ' + f1(w * px, 0) + ' × 縦 ' + f1(h * py, 0) + ' ナノメートル)/ 高さの幅 ' + f1(zmax - zmin, 1) + ' ナノメートル / 高さ方向 ' + exag.toFixed(1) + ' 倍に拡大 / ' + dataLabel(), 10, 18);
+  g.fillText('色: 低い(紫)→ 高い(黄)', 10, 36);
+}
+(function () {
+  const cv = $('c3d'); let d = null, raf = 0;
+  const redraw = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw3D(); }); };
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); d = { x: e.clientX, y: e.clientY }; });
+  cv.addEventListener('pointermove', e => { if (!d) return; S.d3.az -= (e.clientX - d.x) * 0.008; S.d3.el = Math.max(0.05, Math.min(1.55, S.d3.el + (e.clientY - d.y) * 0.008)); d = { x: e.clientX, y: e.clientY }; redraw(); });
+  const up = () => { d = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); S.d3.zoom = Math.max(0.3, Math.min(6, S.d3.zoom * (e.deltaY < 0 ? 1.1 : 0.91))); redraw(); }, { passive: false });
+  $('d3Z').addEventListener('input', e => { S.d3.exag = Number(e.target.value); $('d3ZVal').textContent = S.d3.exag.toFixed(1) + ' 倍'; redraw(); });
+  $('d3Range').addEventListener('change', redraw);
+  $('d3Reset').addEventListener('click', () => { S.d3.az = -0.6; S.d3.el = 0.75; S.d3.zoom = 1; redraw(); });
+})();
+
+// ---------- タブ ----------
+function setTab(t) {
+  S.tab = t;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $('tab-img').style.display = t === 'img' ? 'block' : 'none'; $('tab-hist').style.display = t === 'hist' ? 'block' : 'none'; $('tab-d3').style.display = t === 'd3' ? 'block' : 'none';
+  drawAll();
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+function refreshAll() { rebuildRectUi(); drawAll(); updateResults(); }
+window.addEventListener('resize', () => { if (S.orig) drawAll(); });
+
+// ---------- 書き出し ----------
+function download(name, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+function baseName() { return (S.name || '画像').replace(/\.[^.]+$/, ''); }
+$('btnCsv').addEventListener('click', () => {
+  if (!S.orig) return toast('先に画像を読み込んでください', true);
+  const q = v => { const s = String(v === undefined || v === null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const L = []; const add = (...a) => L.push(a.map(q).join(','));
+  add('項目', '値'); add('ファイル名', S.name); add('読み込み方法', S.source); add('画像の大きさ(画素)', S.W + ' × ' + S.H);
+  add('走査範囲(ナノメートル)', f1(scanNm(), 2)); add('1画素の横の大きさ(ナノメートル)', f1(pxNm(), 4)); add('1画素の縦の大きさ(ナノメートル)', f1(pyNm(), 4)); add('高さの倍率(1 が何ナノメートルか)', zFactor());
+  if (S.res.flat) { add('補正の次数', ['', '一次', '二次', '三次'][S.res.flat.order]); add('補正に使った範囲', S.res.flat.fitName); add('高さの 0 の基準', S.res.flat.shiftName); add('補正に使った画素数', S.res.flat.used); }
+  else add('補正', 'なし(補正前の画像)');
+  add('保存日時', new Date().toLocaleString('ja-JP')); L.push('');
+  add('表面粗さ(対象: ' + dataLabel() + ')'); add('範囲', '左端x(画素)', '上端y(画素)', '右端x(画素)', '下端y(画素)', '画素数', '算術平均粗さ(nm)', '二乗平均平方根粗さ(nm)', '最大高さ(nm)', '平均の高さ(nm)');
+  for (const x of roughRows()) { const r = x.rect; add(x.name, r ? Math.round(Math.min(r.x0, r.x1)) : 0, r ? Math.round(Math.min(r.y0, r.y1)) : 0, r ? Math.round(Math.max(r.x0, r.x1)) : S.W, r ? Math.round(Math.max(r.y0, r.y1)) : S.H, x.r.n, x.r.sa, x.r.sq, x.r.sz, x.r.mean); }
+  L.push('');
+  const h = S.res.hRect; if (h) { add('ピラーの高さ(方法ア: 四角形で指定。対象: ' + h.label + ')'); add('高さ(nm)', h.height); add('頂上の範囲', h.topName); add('頂上の平均(nm)', h.top); add('床の範囲', h.floorName); add('床の平均(nm)', h.floor); L.push(''); }
+  const a = S.res.hAuto; if (a) { add('ピラーの高さ(方法イ: 自動・推定。対象: ' + a.rangeName + '、' + a.label + ')'); add('高さ・推定(nm)', a.height); add('床の山の位置(nm)', a.floor); add('頂上の山の位置(nm)', a.top); L.push(''); }
+  const c = S.res.count; if (c) { add('ピラーの個数(対象: ' + c.rangeName + '、' + c.label + ')'); add('個数', c.count); add('縁に接しない個数', c.countInner); add('中心間の間隔(nm)', c.spacing); add('縦方向の行数', c.rows); add('1行あたりの最大個数', c.perRow); add('二値化の高さ(nm)', c.threshold); }
+  download(baseName() + '_解析結果.csv', new Blob(['﻿' + L.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' }));
+  toast('CSV を保存しました');
+});
+$('btnPng').addEventListener('click', () => {
+  if (!S.orig) return toast('先に画像を読み込んでください', true);
+  let cv;
+  if (S.tab === 'img') {
+    drawAll(); const a = $('cvBefore'), b = $('cvAfter'), pad = 12, top = 26;
+    cv = document.createElement('canvas'); cv.width = a.width + b.width + pad * 3; cv.height = Math.max(a.height, b.height) + top + pad + 20;
+    const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.fillStyle = '#1d2733'; g.font = 'bold 14px sans-serif';
+    g.fillText('補正前', pad, 18); g.fillText('補正後', a.width + pad * 2, 18);
+    g.drawImage(a, pad, top); g.drawImage(b, a.width + pad * 2, top);
+    g.font = '12px sans-serif'; g.fillText('色の範囲(補正前) ' + f1(S.rangeB.min, 1) + ' 〜 ' + f1(S.rangeB.max, 1) + ' ナノメートル / (補正後) ' + f1(S.rangeA.min, 1) + ' 〜 ' + f1(S.rangeA.max, 1) + ' ナノメートル / 走査範囲 ' + f1(scanNm() / 1000, 3) + ' マイクロメートル', pad, cv.height - 8);
+  } else if (S.tab === 'hist') { drawHist(); cv = $('chist'); } else { draw3D(); cv = $('c3d'); }
+  cv.toBlob(bl => { download(baseName() + '_' + ({ img: '画像', hist: '高さの分布', d3: '三次元' }[S.tab]) + '.png', bl); toast('PNG 画像を保存しました'); }, 'image/png');
+});
+
+rebuildRectUi();
+window.AFMApp = { S, loadTable, loadXqd, drawAll, setTab };   // 画面の自動確認(tests/gui_check.js)で使う
+})();
+</script>
+</body>
+</html>

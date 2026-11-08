@@ -1,0 +1,14 @@
+{
+  "説明": "30マイクロメートル四方・256x256・円柱ピラー10x10(間隔3000nm・直径1500nm)・高さ250nm・一次の傾き+二次の湾曲+ノイズ",
+  "scan_nm": 30000.0,
+  "n": 256,
+  "pillar_height_nm": 250.0,
+  "pillar_rows": 10,
+  "pillar_cols": 10,
+  "pitch_nm": 3000.0,
+  "noise_sd_nm": 2.0,
+  "tilt_x_nm": 600.0,
+  "tilt_y_nm": -400.0,
+  "bowl_nm": 150.0,
+  "floor_noise_sq_nm": 2.0
+}

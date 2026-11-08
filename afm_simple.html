@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原子間力顕微鏡 断面図</title>
+<style>
+:root{--bg:#f4f6f8;--panel:#fff;--ink:#1d2733;--sub:#4c5968;--line:#d0d7df;--accent:#1f6feb;--err:#c62828}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo UI","Hiragino Sans","Noto Sans CJK JP",sans-serif;font-size:14px;line-height:1.4}
+.app{height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr);gap:6px;padding:6px}
+.top{display:flex;flex-direction:column;gap:3px}
+.top1{display:flex;align-items:center;gap:12px;flex-wrap:nowrap}
+.drop{display:flex;flex-direction:column;justify-content:center;align-items:center;border:2px dashed #8fa3ba;border-radius:8px;background:#fafcff;cursor:pointer;text-align:center;padding:2px 10px;min-height:42px;flex:0 0 auto;width:300px}
+.drop:hover,.drop.over{background:#e8f1ff;border-color:var(--accent)}
+.drop b{font-size:14px}
+.drop span{font-size:14px;color:var(--sub)}
+.drop input{display:none}
+.btns{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.btns button{font:inherit;font-weight:700;border:2px solid var(--accent);background:#fff;color:var(--accent);border-radius:7px;padding:6px 14px;cursor:pointer;min-width:64px}
+.btns button:hover{background:#eef5ff}
+.btns button.on{background:var(--accent);color:#fff}
+.btns button.back{border-color:#8a96a6;color:#33414f}
+.btns button.mode{border-color:#2e7d32;color:#2e7d32;margin-left:6px}
+.btns button.mode:hover{background:#eaf6ec}
+.btns button.mode.on{background:#2e7d32;color:#fff}
+.btns button.back.on{background:#6b7888;border-color:#6b7888;color:#fff}
+.q{position:relative;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#dfe6ee;color:#33414f;font-weight:700;cursor:help;flex:none}
+.q .tip{display:none;position:absolute;left:50%;top:30px;transform:translateX(-30%);width:420px;background:#14202e;color:#fff;border-radius:8px;padding:9px 12px;font-weight:400;font-size:14px;line-height:1.5;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.q:hover .tip,.q:focus .tip{display:block}
+.scan{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.scan input{font:inherit;width:84px;border:1px solid var(--line);border-radius:5px;padding:4px 6px}
+.note{color:#8a5a00;font-weight:700}
+.top2{display:flex;align-items:center;gap:12px;min-height:22px}
+.status{flex:1 1 auto;background:#fff4e5;border:1.5px solid #f0b45a;color:#6b3f00;border-radius:6px;padding:2px 10px;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.status.done{background:#e7f6ec;border-color:#6bbf8a;color:#14532d}
+.red{color:var(--err);font-weight:700;flex:0 0 auto;white-space:nowrap}
+.main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;min-height:0}
+.left{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:3px;min-height:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px}
+.imgcell{min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#e4e9ef;border-radius:4px}
+#cvImg{display:block;cursor:crosshair;touch-action:none}
+#cv3d{display:none;cursor:grab;touch-action:none}
+#cv3d:active{cursor:grabbing}
+.ctl3{display:none;align-items:center;gap:8px;flex-wrap:wrap}
+.ctl3 input[type=range]{width:130px}
+.ctl3 button{font:inherit;border:1.5px solid #8a96a6;background:#fff;border-radius:6px;padding:1px 8px;cursor:pointer}
+.bar{display:flex;align-items:center;gap:8px;color:var(--sub)}
+.bar canvas{width:150px;height:12px;border:1px solid var(--line);border-radius:2px}
+.right{display:flex;flex-direction:column;gap:6px;min-height:0}
+#cards{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:6px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px}
+.lcard{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:2px}
+.lhead{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.chip{width:16px;height:16px;border-radius:4px;border:1.5px solid #3a4655;flex:none}
+.lname{font-weight:700;font-size:15px;flex:none}
+.rd{flex:1 1 auto;display:flex;gap:12px;align-items:baseline;font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:0}
+.rd .hintt{font-size:14px;font-weight:400;color:var(--sub)}
+.lhead button{font:inherit;border:1.5px solid #8a96a6;background:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;flex:none}
+.lhead button:hover{background:#eef2f6}
+.pc{flex:1 1 0;min-height:0}
+.pc canvas{width:100%;height:100%;display:block;touch-action:none}
+.noline{color:var(--sub);font-size:15px;padding:14px;text-align:center;flex:1 1 auto;display:flex;align-items:center;justify-content:center}
+details{border:1px solid var(--line);border-radius:6px;padding:4px 8px;background:#fbfcfd}
+summary{cursor:pointer;color:var(--sub)}
+details label{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+details input,details select{font:inherit;border:1px solid var(--line);border-radius:5px;padding:4px 6px}
+.toast{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);background:#b71c1c;color:#fff;padding:8px 14px;border-radius:8px;max-width:86vw;z-index:40;display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="top1">
+      <label class="drop" id="drop" for="file">
+        <b>ファイルをここに入れてください</b>
+        <span>(.xqd、または数値の表。クリックでも選べます)</span>
+        <input type="file" id="file" accept=".xqd,.xqdx,.txt,.csv,.tsv,.dat,.asc">
+      </label>
+      <div class="btns">
+        <button id="b1">一次</button><button id="b2">二次</button><button id="b3">三次</button><button id="b0" class="back">元に戻す</button>
+        <button id="b3d" class="mode" title="画像を立体にして、マウスで回して見ます">三次元で見る</button><span class="q" tabindex="0" aria-label="補正の説明">?<span class="tip">一次:画像全体の傾きだけを直します。二次:傾きに加えて、画像全体のゆるやかな反りも直します。三次:二次に加えて、ゆるやかなうねりも直します。ただし、ピラーの高さを実際より小さく見せる場合があります。ボタンは押した順に重ねて補正します(一次のあとに二次を押すと、一次の結果に二次を重ねます)。「元に戻す」で、重ねた補正がすべて消えます。ピラーの高さを測る前に、どれかを押してください</span></span>
+      </div>
+      <div class="scan"><span>走査範囲(マイクロメートル)</span><input type="number" id="scan" value="3.0" min="0" step="any"><span class="note" id="scanNote">必ず確認してください</span></div>
+    </div>
+    <div class="top2">
+      <div class="status" id="status">ファイルを入れると、画像が表示されます。</div>
+      <div class="red" id="zRed" style="display:none">高さの倍率は未確定です</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="left">
+      <div class="imgcell" id="imgcell"><canvas id="cvImg" width="10" height="10"></canvas><canvas id="cv3d"></canvas></div>
+      <div class="bar"><span id="cbMin">—</span><canvas id="cbar" width="150" height="12"></canvas><span id="cbMax">—</span><span>(色は高さ。単位: ナノメートル)</span><span class="ctl3" id="ctl3"><b>ドラッグで回転・ホイールで拡大縮小</b><span>高さの拡大</span><input type="range" id="zx" min="0.5" max="40" step="0.5" value="1"><b id="zxv">1.0 倍</b><button id="r3">視点を戻す</button></span></div>
+    </div>
+    <div class="right">
+      <div id="cards"></div>
+      <details id="detail"><summary>詳細</summary>
+        <label>高さの倍率(表の値 1 が何ナノメートルか)<input type="number" id="zf" value="1" step="any" min="0"></label>
+        <label id="smpRow" style="display:none">標本の使い方(.xqd のみ)
+          <select id="smp"><option value="0" selected>偶数番目の標本だけ(256×256)</option><option value="1">奇数番目の標本だけ(256×256)</option><option value="2">2つを交互に並べる(512×256。横の画素は縦の半分)</option></select></label>
+      </details>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== 計算の部分(画面に依存しない。tests/run_tests.js も同じコードを読み込んで確かめる) ===== */
+const AFMCore = (function () {
+  'use strict';
+
+  // 多項式の項: x^i * y^j (i+j <= order)
+  function polyTerms(order) {
+    const t = [];
+    for (let d = 0; d <= order; d++) for (let i = d; i >= 0; i--) t.push([i, d - i]);
+    return t;
+  }
+
+  // 正規化した座標(-1〜1)。画素の中心を使う。
+  function normCoord(k, n) {
+    const h = (n - 1) / 2;
+    return h > 0 ? (k - h) / h : 0;
+  }
+
+  function solveLinear(A, b, m) {
+    // ガウスの消去法(部分ピボット選択)。A は m×m の Float64Array、b は長さ m。
+    const M = new Float64Array(m * (m + 1));
+    for (let i = 0; i < m; i++) {
+      for (let j = 0; j < m; j++) M[i * (m + 1) + j] = A[i * m + j];
+      M[i * (m + 1) + m] = b[i];
+    }
+    for (let c = 0; c < m; c++) {
+      let p = c, best = Math.abs(M[c * (m + 1) + c]);
+      for (let r = c + 1; r < m; r++) {
+        const v = Math.abs(M[r * (m + 1) + c]);
+        if (v > best) { best = v; p = r; }
+      }
+      if (best < 1e-12) throw new Error('補正の計算ができません(補正に使う範囲が狭すぎるか、一直線に並んでいます)');
+      if (p !== c) for (let j = c; j <= m; j++) {
+        const t = M[c * (m + 1) + j]; M[c * (m + 1) + j] = M[p * (m + 1) + j]; M[p * (m + 1) + j] = t;
+      }
+      for (let r = c + 1; r < m; r++) {
+        const f = M[r * (m + 1) + c] / M[c * (m + 1) + c];
+        if (f === 0) continue;
+        for (let j = c; j <= m; j++) M[r * (m + 1) + j] -= f * M[c * (m + 1) + j];
+      }
+    }
+    const x = new Float64Array(m);
+    for (let i = m - 1; i >= 0; i--) {
+      let s = M[i * (m + 1) + m];
+      for (let j = i + 1; j < m; j++) s -= M[i * (m + 1) + j] * x[j];
+      x[i] = s / M[i * (m + 1) + i];
+    }
+    return x;
+  }
+
+  // 最小二乗法で、座標 x,y の order 次までの多項式をあてはめる。mask が null なら画像全体。
+  function fitPolynomial(z, W, H, mask, order) {
+    const terms = polyTerms(order), m = terms.length;
+    const A = new Float64Array(m * m), b = new Float64Array(m), phi = new Float64Array(m);
+    const px = new Float64Array(order + 1), py = new Float64Array(order + 1);
+    let n = 0;
+    for (let y = 0; y < H; y++) {
+      const Y = normCoord(y, H);
+      py[0] = 1; for (let k = 1; k <= order; k++) py[k] = py[k - 1] * Y;
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        if (mask && !mask[idx]) continue;
+        const v = z[idx];
+        if (!isFinite(v)) continue;
+        const X = normCoord(x, W);
+        px[0] = 1; for (let k = 1; k <= order; k++) px[k] = px[k - 1] * X;
+        for (let t = 0; t < m; t++) phi[t] = px[terms[t][0]] * py[terms[t][1]];
+        for (let i = 0; i < m; i++) {
+          b[i] += phi[i] * v;
+          for (let j = 0; j < m; j++) A[i * m + j] += phi[i] * phi[j];
+        }
+        n++;
+      }
+    }
+    if (n < m * 3) throw new Error('補正に使う画素が少なすぎます(' + n + ' 個)。範囲を広げてください');
+    return { coef: solveLinear(A, b, m), terms, order, n };
+  }
+
+  function evalPolynomial(fit, W, H) {
+    const out = new Float64Array(W * H), { coef, terms, order } = fit;
+    const px = new Float64Array(order + 1), py = new Float64Array(order + 1);
+    for (let y = 0; y < H; y++) {
+      const Y = normCoord(y, H);
+      py[0] = 1; for (let k = 1; k <= order; k++) py[k] = py[k - 1] * Y;
+      for (let x = 0; x < W; x++) {
+        const X = normCoord(x, W);
+        px[0] = 1; for (let k = 1; k <= order; k++) px[k] = px[k - 1] * X;
+        let s = 0;
+        for (let t = 0; t < terms.length; t++) s += coef[t] * px[terms[t][0]] * py[terms[t][1]];
+        out[y * W + x] = s;
+      }
+    }
+    return out;
+  }
+
+  // 四角形(x0,y0 を含み x1,y1 を含まない。画素単位)から、画素ごとの印を作る。
+  function rectsMask(rects, W, H) {
+    const m = new Uint8Array(W * H);
+    for (const r of rects) {
+      const x0 = Math.max(0, Math.round(Math.min(r.x0, r.x1))), x1 = Math.min(W, Math.round(Math.max(r.x0, r.x1)));
+      const y0 = Math.max(0, Math.round(Math.min(r.y0, r.y1))), y1 = Math.min(H, Math.round(Math.max(r.y0, r.y1)));
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) m[y * W + x] = 1;
+    }
+    return m;
+  }
+
+  function maskMean(z, mask) {
+    let s = 0, n = 0;
+    for (let i = 0; i < z.length; i++) if ((!mask || mask[i]) && isFinite(z[i])) { s += z[i]; n++; }
+    return n ? s / n : NaN;
+  }
+
+  // 傾き補正。fitMask が null なら画像全体で補正。
+  // shiftMask: null なら「補正に使った範囲の平均を 0」、配列なら「その範囲の平均を 0」。
+  function flatten(z, W, H, fitMask, order, shiftMask) {
+    const fit = fitPolynomial(z, W, H, fitMask, order);
+    const surf = evalPolynomial(fit, W, H);
+    const out = new Float64Array(W * H);
+    for (let i = 0; i < out.length; i++) out[i] = z[i] - surf[i];
+    const shift = maskMean(out, shiftMask || fitMask);
+    for (let i = 0; i < out.length; i++) out[i] -= shift;
+    let smin = Infinity, smax = -Infinity;
+    for (let i = 0; i < surf.length; i++) { if (surf[i] < smin) smin = surf[i]; if (surf[i] > smax) smax = surf[i]; }
+    return { out, fit, surfaceRange: smax - smin, usedPixels: fit.n, shift };
+  }
+
+  function rectBounds(r, W, H) {
+    return {
+      x0: Math.max(0, Math.round(Math.min(r.x0, r.x1))), x1: Math.min(W, Math.round(Math.max(r.x0, r.x1))),
+      y0: Math.max(0, Math.round(Math.min(r.y0, r.y1))), y1: Math.min(H, Math.round(Math.max(r.y0, r.y1)))
+    };
+  }
+
+  // 四角形(null なら画像全体)の中の値を配列で返す
+  function valuesIn(z, W, H, rect) {
+    const b = rect ? rectBounds(rect, W, H) : { x0: 0, x1: W, y0: 0, y1: H };
+    const v = [];
+    for (let y = b.y0; y < b.y1; y++) for (let x = b.x0; x < b.x1; x++) { const t = z[y * W + x]; if (isFinite(t)) v.push(t); }
+    return v;
+  }
+
+  // 表面粗さ。算術平均粗さ = 平均からのずれの絶対値の平均。二乗平均平方根粗さ = ずれの二乗の平均の平方根。
+  function roughness(z, W, H, rect) {
+    const v = valuesIn(z, W, H, rect), n = v.length;
+    if (!n) return { n: 0, mean: NaN, sa: NaN, sq: NaN, sz: NaN, max: NaN, min: NaN };
+    let s = 0, mn = Infinity, mx = -Infinity;
+    for (const t of v) { s += t; if (t < mn) mn = t; if (t > mx) mx = t; }
+    const mean = s / n;
+    let a = 0, q = 0;
+    for (const t of v) { const d = t - mean; a += Math.abs(d); q += d * d; }
+    return { n, mean, sa: a / n, sq: Math.sqrt(q / n), sz: mx - mn, max: mx, min: mn };
+  }
+
+  // 方法(ア): 頂上の範囲と床の範囲の、平均の差
+  function heightByRects(z, W, H, topRect, floorRect) {
+    const t = roughness(z, W, H, topRect), f = roughness(z, W, H, floorRect);
+    return { top: t.mean, floor: f.mean, height: t.mean - f.mean, topSd: t.sq, floorSd: f.sq, nTop: t.n, nFloor: f.n };
+  }
+
+  function percentile(sorted, p) {
+    if (!sorted.length) return NaN;
+    const k = (sorted.length - 1) * p, i = Math.floor(k), f = k - i;
+    return i + 1 < sorted.length ? sorted[i] * (1 - f) + sorted[i + 1] * f : sorted[i];
+  }
+
+  function makeHistogram(values, bins, lo, hi) {
+    const counts = new Float64Array(bins), w = (hi - lo) / bins;
+    for (const v of values) {
+      if (v < lo || v > hi) continue;
+      let k = Math.floor((v - lo) / w); if (k >= bins) k = bins - 1;
+      counts[k]++;
+    }
+    return { counts, lo, hi, width: w, bins };
+  }
+
+  function smoothCounts(c, sigmaBins) {
+    const n = c.length, r = Math.ceil(sigmaBins * 3), k = [];
+    let ks = 0;
+    for (let i = -r; i <= r; i++) { const w = Math.exp(-0.5 * (i / sigmaBins) ** 2); k.push(w); ks += w; }
+    const out = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let s = 0;
+      for (let j = -r; j <= r; j++) { const q = i + j; if (q >= 0 && q < n) s += c[q] * k[j + r]; }
+      out[i] = s / ks;
+    }
+    return out;
+  }
+
+  function otsuIndex(counts) {
+    let total = 0, sumAll = 0;
+    for (let i = 0; i < counts.length; i++) { total += counts[i]; sumAll += i * counts[i]; }
+    let wB = 0, sumB = 0, best = -1, bestT = 0;
+    for (let t = 0; t < counts.length - 1; t++) {
+      wB += counts[t]; sumB += t * counts[t];
+      const wF = total - wB;
+      if (wB === 0 || wF === 0) continue;
+      const mB = sumB / wB, mF = (sumAll - sumB) / wF;
+      const between = wB * wF * (mB - mF) ** 2;
+      if (between > best) { best = between; bestT = t; }
+    }
+    return bestT;
+  }
+
+  // 山の中心: 山の頂上から半値幅の範囲を、度数で重みを付けた平均で求める
+  function peakCentroid(raw, smooth, from, to, lo, width) {
+    let pk = from;
+    for (let i = from; i <= to; i++) if (smooth[i] > smooth[pk]) pk = i;
+    const half = smooth[pk] * 0.5;
+    let a = pk, b = pk;
+    while (a - 1 >= from && smooth[a - 1] >= half) a--;
+    while (b + 1 <= to && smooth[b + 1] >= half) b++;
+    let s = 0, w = 0;
+    for (let i = a; i <= b; i++) { s += (lo + (i + 0.5) * width) * raw[i]; w += raw[i]; }
+    return { center: w ? s / w : lo + (pk + 0.5) * width, peakBin: pk, from: a, to: b, peakCount: smooth[pk] };
+  }
+
+  // 方法(イ): ヒストグラムの床の山と頂上の山の差(推定)
+  function heightAuto(z, W, H, rect) {
+    const v = valuesIn(z, W, H, rect);
+    if (v.length < 100) throw new Error('画素が少なすぎます');
+    const sorted = Float64Array.from(v).sort();
+    const lo = percentile(sorted, 0.002), hi = percentile(sorted, 0.998);
+    if (!(hi > lo)) throw new Error('高さにばらつきがありません');
+    const bins = 256, hist = makeHistogram(v, bins, lo, hi);
+    const smooth = smoothCounts(hist.counts, 2);
+    const t = otsuIndex(smooth);
+    const floorPk = peakCentroid(hist.counts, smooth, 0, t, lo, hist.width);
+    const topPk = peakCentroid(hist.counts, smooth, t + 1, bins - 1, lo, hist.width);
+    return {
+      floor: floorPk.center, top: topPk.center, height: topPk.center - floorPk.center,
+      threshold: lo + (t + 1) * hist.width, hist, smooth, floorPeak: floorPk, topPeak: topPk,
+      midpoint: (floorPk.center + topPk.center) / 2
+    };
+  }
+
+  function boxSmooth3(z, W, H) {
+    const out = new Float64Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let s = 0, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        s += z[yy * W + xx]; n++;
+      }
+      out[y * W + x] = s / n;
+    }
+    return out;
+  }
+
+  // 高さの中間値で二値化し、ピラーの個数と中心間の間隔を求める。
+  // pxX, pxY: 1 画素の大きさ(ナノメートル)。threshold が未指定なら、床の山と頂上の山の中間。
+  function countPillars(z, W, H, pxX, pxY, rect, threshold) {
+    const auto = heightAuto(z, W, H, rect);
+    const thr = (threshold === undefined || threshold === null || isNaN(threshold)) ? auto.midpoint : threshold;
+    const zs = boxSmooth3(z, W, H);
+    const b = rect ? rectBounds(rect, W, H) : { x0: 0, x1: W, y0: 0, y1: H };
+    const label = new Int32Array(W * H).fill(0);
+    const comps = [];
+    const stack = new Int32Array(W * H);
+    for (let y = b.y0; y < b.y1; y++) for (let x = b.x0; x < b.x1; x++) {
+      const i0 = y * W + x;
+      if (label[i0] || !(zs[i0] > thr)) continue;
+      const id = comps.length + 1;
+      let sp = 0, area = 0, sx = 0, sy = 0, edge = false;
+      stack[sp++] = i0; label[i0] = id;
+      while (sp) {
+        const i = stack[--sp], cx = i % W, cy = (i - cx) / W;
+        area++; sx += cx; sy += cy;
+        if (cx === b.x0 || cy === b.y0 || cx === b.x1 - 1 || cy === b.y1 - 1) edge = true;
+        const nb = [[cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]];
+        for (const [nx, ny] of nb) {
+          if (nx < b.x0 || ny < b.y0 || nx >= b.x1 || ny >= b.y1) continue;
+          const j = ny * W + nx;
+          if (label[j] || !(zs[j] > thr)) continue;
+          label[j] = id; stack[sp++] = j;
+        }
+      }
+      comps.push({ area, cx: sx / area + 0.5, cy: sy / area + 0.5, edge });
+    }
+    const innerAreas = comps.filter(c => !c.edge).map(c => c.area).sort((a, c) => a - c);
+    const allAreas = comps.map(c => c.area).sort((a, c) => a - c);
+    const ref = innerAreas.length ? innerAreas[Math.floor(innerAreas.length / 2)] : (allAreas.length ? allAreas[Math.floor(allAreas.length / 2)] : 0);
+    const minArea = Math.max(4, ref * 0.3);
+    const kept = comps.filter(c => c.area >= minArea);
+    // 最近接の中心間隔(縁に接しないものがあればそれだけで平均)
+    const base = kept.filter(c => !c.edge).length >= 3 ? kept.filter(c => !c.edge) : kept;
+    let spacing = NaN;
+    if (kept.length >= 2 && base.length >= 1) {
+      let s = 0, n = 0;
+      for (const c of base) {
+        let d = Infinity;
+        for (const o of kept) { if (o === c) continue; const dd = Math.hypot((o.cx - c.cx) * pxX, (o.cy - c.cy) * pxY); if (dd < d) d = dd; }
+        if (isFinite(d)) { s += d; n++; }
+      }
+      spacing = n ? s / n : NaN;
+    }
+    // 行(縦座標の群れ)と、1 行あたりの最大個数
+    let rows = 0, perRow = 0;
+    if (kept.length && isFinite(spacing)) {
+      const ys = kept.map(c => c).sort((a, c) => a.cy - c.cy);
+      const groups = [[ys[0]]];
+      for (let i = 1; i < ys.length; i++) {
+        if ((ys[i].cy - ys[i - 1].cy) * pxY > spacing * 0.5) groups.push([ys[i]]); else groups[groups.length - 1].push(ys[i]);
+      }
+      rows = groups.length; perRow = Math.max(...groups.map(g => g.length));
+    }
+    return {
+      count: kept.length, countInner: kept.filter(c => !c.edge).length, spacing, rows, perRow,
+      threshold: thr, centers: kept.map(c => ({ x: c.cx, y: c.cy, edge: c.edge })), minArea, auto
+    };
+  }
+
+  // ---------- 読み込み ----------
+  // 数値の表(コンマ・タブ・セミコロン・空白区切り)。数値だけの行がいちばん長く続く部分を表として読む。
+  function parseMatrixText(text) {
+    const lines = text.replace(/^﻿/, '').split(/\r?\n/);
+    const rows = lines.map(line => {
+      const s = line.trim();
+      if (!s) return null;
+      let toks = s.split(/[\t,;]+/);
+      if (toks.length === 1) toks = s.split(/\s+/);
+      const nums = [];
+      for (let t of toks) {
+        t = t.trim();
+        if (t === '') continue;
+        const v = Number(t);
+        if (!isFinite(v)) return null;
+        nums.push(v);
+      }
+      return nums.length ? nums : null;
+    });
+    let best = { start: -1, len: 0, w: 0 }, i = 0;
+    while (i < rows.length) {
+      if (!rows[i]) { i++; continue; }
+      const w = rows[i].length; let j = i;
+      while (j < rows.length && rows[j] && rows[j].length === w) j++;
+      if (j - i > best.len) best = { start: i, len: j - i, w };
+      i = j;
+    }
+    if (best.len < 4 || best.w < 4) throw new Error('数値の行列(4行4列以上)が見つかりません');
+    const data = new Float64Array(best.len * best.w);
+    for (let r = 0; r < best.len; r++) data.set(rows[best.start + r], r * best.w);
+    const skipped = lines.filter(l => l.trim() !== '').length - best.len;
+    return { data, W: best.w, H: best.len, note: skipped > 0 ? ('表の外の ' + skipped + ' 行を読み飛ばしました') : '' };
+  }
+
+  // .xqd / .xqdx の実験的な読み込み(倍率は未確定。README の「.xqd の直接読み込み」を参照)
+  // 先頭 "SPIZ"、0x18 に説明部分の長さ、その後ろは 16 ビット整数(リトルエンディアン)が 512 個 × 256 行。
+  // 偶数番目の列と奇数番目の列は、同じ高さの信号を横に半画素ずらして標本化したもの。
+  // mode 0: 偶数番目だけ(256×256) / 1: 奇数番目だけ(256×256) / 2: 交互に並べる(512×256。画素の横の大きさは半分)
+  // .xqdx は、説明部分つきの塊が 2 つ並ぶ形。2 つのデータが一致するなら、1 つ目だけを使う。
+  function parseXqd(buf, mode) {
+    const u8 = new Uint8Array(buf);
+    const magicAt = o => o + 4 <= u8.length && String.fromCharCode(u8[o], u8[o + 1], u8[o + 2], u8[o + 3]) === 'SPIZ';
+    if (!magicAt(0)) throw new Error('.xqd の先頭が SPIZ ではありません。別の形式のファイルです');
+    let dv = new DataView(buf), blockLen = buf.byteLength, duplicate = null;
+    if (buf.byteLength % 2 === 0 && magicAt(buf.byteLength / 2)) {   // .xqdx: 同じ大きさの塊が 2 つ
+      blockLen = buf.byteLength / 2;
+      const hs0 = dv.getUint32(0x18, true);
+      let same = true;
+      for (let i = hs0; i < blockLen; i++) if (u8[i] !== u8[blockLen + i]) { same = false; break; }
+      duplicate = same ? 'same' : 'different';
+      dv = new DataView(buf, 0, blockLen);
+    }
+    const headerSize = dv.getUint32(0x18, true);
+    if (headerSize < 64 || headerSize >= blockLen) throw new Error('説明部分の長さが読み取れません');
+    const nSamples = Math.floor((blockLen - headerSize) / 2);
+    const side = Math.round(Math.sqrt(nSamples / 2));
+    if (side * side * 2 !== nSamples) throw new Error('画素数が 256×512 の形になりません(' + nSamples + ' 個)。未対応の並べ方です');
+    const m = mode === 2 ? 2 : (mode === 1 ? 1 : 0);
+    let data, W, H;
+    if (m === 2) {
+      W = side * 2; H = side; data = new Float64Array(W * H);
+      for (let i = 0; i < data.length; i++) data[i] = dv.getInt16(headerSize + i * 2, true);
+    } else {
+      W = side; H = side; data = new Float64Array(W * H);
+      for (let i = 0; i < data.length; i++) data[i] = dv.getInt16(headerSize + (2 * i + m) * 2, true);
+    }
+    const pitch = dv.getFloat64(0xa0, true);         // 説明部分の 0xA0: 1 画素の大きさ(ナノメートル)と推定。256 画素で走査範囲
+    const zFactor = dv.getFloat64(0xa8, true);       // 説明部分の 0xA8: 高さ 1 カウントの大きさ(ナノメートル)の候補。10200 ÷ 32767 と一致。未確定
+    return {
+      data, W, H, headerSize, mode: m, pxRatio: m === 2 ? 2 : 1, duplicate,
+      pitchNm: (pitch > 0.01 && pitch < 1e5) ? pitch : NaN,
+      zFactorNm: (zFactor > 1e-4 && zFactor < 1e3) ? zFactor : NaN,
+      scanNm: (pitch > 0.01 && pitch < 1e5) ? pitch * side : NaN,
+      date: { y: dv.getUint16(0x1c, true), mo: dv.getUint16(0x1e, true), d: dv.getUint16(0x20, true), h: dv.getUint16(0x22, true), mi: dv.getUint16(0x24, true) }
+    };
+  }
+
+  return {
+    polyTerms, fitPolynomial, evalPolynomial, rectsMask, maskMean, flatten, rectBounds, valuesIn, roughness,
+    heightByRects, heightAuto, countPillars, makeHistogram, percentile, parseMatrixText, parseXqd
+  };
+})();
+/* ===== 計算の部分、ここまで ===== */
+
+</script>
+<script>
+/* ===== 断面の計算(画面に依存しない。tests/run_tests_simple.js が同じコードを読み込んで確かめる) ===== */
+const AFMProfile = (function () {
+  'use strict';
+  // 画像 z(幅 W、高さ H)の上の線 line(画素の座標。端は画素の中心ではなく、画素の左上を 0 とする連続座標)に沿って、
+  // 1 画素ごとに高さを取り出す(隣り合う 4 画素から、双線形補間)。距離はナノメートル。
+  function bilinear(z, W, H, x, y) {
+    const fx = Math.max(0, Math.min(W - 1, x - 0.5)), fy = Math.max(0, Math.min(H - 1, y - 0.5));   // 画素の中心が 0.5
+    const x0 = Math.floor(fx), y0 = Math.floor(fy), x1 = Math.min(W - 1, x0 + 1), y1 = Math.min(H - 1, y0 + 1), tx = fx - x0, ty = fy - y0;
+    return (z[y0 * W + x0] * (1 - tx) + z[y0 * W + x1] * tx) * (1 - ty) + (z[y1 * W + x0] * (1 - tx) + z[y1 * W + x1] * tx) * ty;
+  }
+  function sample(z, W, H, line, pxX, pxY) {
+    const dx = line.x1 - line.x0, dy = line.y1 - line.y0, lenPx = Math.hypot(dx, dy), n = Math.max(2, Math.ceil(lenPx) + 1);
+    const lenNm = Math.hypot(dx * pxX, dy * pxY), d = new Float64Array(n), h = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1);
+      d[i] = t * lenNm; h[i] = bilinear(z, W, H, line.x0 + dx * t, line.y0 + dy * t);
+    }
+    return { d, h, lengthNm: lenNm };
+  }
+  return { sample, bilinear };
+})();
+/* ===== 断面の計算、ここまで ===== */
+
+</script>
+<script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
+const S = { W: 0, H: 0, ratio: 1, raw: null, orig: null, corr: null, order: 0, hist: [], surf: 0, lines: [], mode3d: false, name: '', file: null, buf: null };
+const f1 = (v, d) => (isFinite(v) ? v.toFixed(d === undefined ? 1 : d) : '—');
+const COL = ['#e53935', '#1e66f5'];
+function toast(m) { const t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.h); toast.h = setTimeout(() => { t.style.display = 'none'; }, 6000); }
+
+function pxNm() { return S.W ? Number($('scan').value) * 1000 / S.W : NaN; }
+function pyNm() { return pxNm() * S.ratio; }
+function cur() { return S.corr || S.orig; }
+function applyFactor() { const k = Number($('zf').value); if (!(k > 0)) return false; S.orig = Float64Array.from(S.raw, v => v * k); return true; }
+
+// ---------- 読み込み ----------
+function setData(m, name, isX) {
+  S.W = m.W; S.H = m.H; S.ratio = m.pxRatio || 1; S.raw = m.data; S.name = name;
+  $('zRed').style.display = isX ? 'block' : 'none'; $('scanNote').style.display = isX ? 'none' : 'inline';
+  $('smpRow').style.display = isX ? 'flex' : 'none';
+  S.corr = null; S.order = 0; S.hist = []; S.surf = 0; S.lines = [];
+  applyFactor(); refresh();
+}
+async function load(file) {
+  try {
+    if (/\.xqdx?$/i.test(file.name)) {
+      S.file = file; S.buf = await file.arrayBuffer(); $('smp').value = '0';
+      const m = AFMCore.parseXqd(S.buf, 0);
+      if (isFinite(m.scanNm)) $('scan').value = (m.scanNm / 1000).toFixed(4);
+      if (isFinite(m.zFactorNm)) $('zf').value = m.zFactorNm.toFixed(4);
+      setData(m, file.name, true);
+    } else {
+      S.buf = null; const m = AFMCore.parseMatrixText(await file.text());
+      $('scan').value = '3.0'; $('zf').value = '1'; setData(m, file.name, false);
+    }
+  } catch (e) { toast('読み込めませんでした: ' + e.message); }
+}
+$('smp').addEventListener('change', () => {
+  if (!S.buf) return;
+  try { const m = AFMCore.parseXqd(S.buf, Number($('smp').value)); setData(m, S.name, true); } catch (e) { toast(e.message); }
+});
+$('file').addEventListener('change', e => { if (e.target.files[0]) load(e.target.files[0]); e.target.value = ''; });
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+document.addEventListener('drop', e => { if (e.dataTransfer.files[0]) load(e.dataTransfer.files[0]); });
+$('scan').addEventListener('change', () => { if (S.raw) refresh(); });
+$('zf').addEventListener('change', () => { if (!S.raw) return; if (!applyFactor()) { toast('倍率は 0 より大きい数を入れてください'); return; } if (S.hist.length) { const h = S.hist.slice(); S.hist = []; S.corr = null; try { h.forEach(applyOne); } catch (e) { toast(e.message); } refresh(); } else refresh(); });
+
+// ---------- 補正(押したときだけ。いつも元のデータから) ----------
+// 押した補正は、いまの画像(それまでに補正した結果)に重ねて行う。「元に戻す」で、補正の記録も消える
+function applyOne(order) {
+  const base = S.corr || S.orig, r = AFMCore.flatten(base, S.W, S.H, null, order);
+  S.corr = r.out; S.hist.push(order); S.order = order;
+  let mn = Infinity, mx = -Infinity;
+  for (let i = 0; i < S.orig.length; i++) { const v = S.orig[i] - S.corr[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
+  S.surf = mx - mn;
+}
+function doFlat(order) {
+  if (!S.orig) return toast('先にファイルを入れてください');
+  try { applyOne(order); refresh(); } catch (e) { toast(e.message); }
+}
+$('b1').addEventListener('click', () => doFlat(1));
+$('b2').addEventListener('click', () => doFlat(2));
+$('b3').addEventListener('click', () => doFlat(3));
+$('b0').addEventListener('click', () => { if (!S.orig) return; S.corr = null; S.order = 0; S.hist = []; S.surf = 0; refresh(); });
+const SENT = {
+  1: '補正済み(一次):画像全体にあてはめた平らな面(傾き)を、画像全体から引きました',
+  2: '補正済み(二次):画像全体にあてはめたなだらかな曲面(傾きと反り)を、画像全体から引きました',
+  3: '補正済み(三次):画像全体にあてはめた、より複雑な曲面(傾きと反りと、さらにゆるやかなうねり)を、画像全体から引きました'
+};
+function statusText() {
+  if (!S.orig) return 'ファイルを入れると、画像が表示されます。';
+  if (!S.order) return '補正:まだしていません(測定したままの画像です)';
+  const names = ['', '一次', '二次', '三次'], tail = '(引いた高さの幅: ' + f1(S.surf, 1) + 'ナノメートル)';
+  if (S.hist.length === 1) return SENT[S.order] + tail;
+  return '補正済み(' + S.hist.map(o => names[o]).join('→') + '):押した順に、画像全体にあてはめた曲面を、いまの画像に重ねて引きました' + tail;
+}
+
+// ---------- 線(最大 3 本)と、線ごとの 2 点 ----------
+const MAXL = 3, LCOL = ['#ff2d2d', '#ff2bd6', '#ffffff'];     // 線1(赤)・線2(桃)・線3(白)
+Object.defineProperty(S, 'line', { get() { return S.lines[0] || null; } });
+function newSlot() { for (let k = 0; k < MAXL; k++) if (!S.lines.some(l => l.slot === k)) return k; return -1; }
+function linesSorted() { return S.lines.slice().sort((a, b) => a.slot - b.slot); }
+function lenOf(L) { return Math.hypot((L.x1 - L.x0) * pxNm(), (L.y1 - L.y0) * pyNm()); }
+function validL(L) { return !!(S.orig && L && Math.hypot(L.x1 - L.x0, (L.y1 - L.y0) * S.ratio) >= 2); }
+function imgPt(L, d) { const t = Math.max(0, Math.min(1, d / (lenOf(L) || 1))); return { x: L.x0 + (L.x1 - L.x0) * t, y: L.y0 + (L.y1 - L.y0) * t }; }
+function clampMarks() { S.lines.forEach(L => { const len = lenOf(L); L.marks.forEach(m => { m.d = Math.max(0, Math.min(len, m.d)); }); }); }
+
+// ---------- 画像 ----------
+const LUT = (() => {
+  const st = [[0, 68, 1, 84], [0.25, 59, 82, 139], [0.5, 33, 145, 140], [0.75, 94, 201, 98], [1, 253, 231, 37]], l = new Uint8ClampedArray(768);
+  for (let i = 0; i < 256; i++) { const t = i / 255; let k = 0; while (k < st.length - 2 && t > st[k + 1][0]) k++; const a = st[k], b = st[k + 1], u = (t - a[0]) / (b[0] - a[0]); for (let c = 0; c < 3; c++) l[i * 3 + c] = a[c + 1] + (b[c + 1] - a[c + 1]) * u; }
+  return l;
+})();
+const off = document.createElement('canvas'); let sx = 1, sy = 1;
+function drawBar() { const c = $('cbar'), g = c.getContext('2d'); for (let x = 0; x < c.width; x++) { const k = Math.round(x / (c.width - 1) * 255); g.fillStyle = 'rgb(' + LUT[k * 3] + ',' + LUT[k * 3 + 1] + ',' + LUT[k * 3 + 2] + ')'; g.fillRect(x, 0, 1, c.height); } }
+function label(g, text, x, y, color) {
+  g.font = 'bold 15px sans-serif'; g.lineJoin = 'round'; g.lineWidth = 5; g.strokeStyle = '#fff'; g.strokeText(text, x, y); g.fillStyle = color; g.fillText(text, x, y);
+}
+function drawImage() {
+  if (S.mode3d) { draw3D(); return; }
+  const cv = $('cvImg');
+  if (!S.orig) { cv.width = 10; cv.height = 10; return; }
+  const z = cur(), sorted = Float64Array.from(z).sort(), lo = AFMCore.percentile(sorted, 0.005), hi = AFMCore.percentile(sorted, 0.995), span = hi - lo || 1;
+  $('cbMin').textContent = f1(lo, 0); $('cbMax').textContent = f1(hi, 0);
+  off.width = S.W; off.height = S.H; const og = off.getContext('2d'), img = og.createImageData(S.W, S.H);
+  for (let i = 0; i < z.length; i++) { let t = (z[i] - lo) / span; t = t < 0 ? 0 : t > 1 ? 1 : t; const k = Math.round(t * 255); img.data[i * 4] = LUT[k * 3]; img.data[i * 4 + 1] = LUT[k * 3 + 1]; img.data[i * 4 + 2] = LUT[k * 3 + 2]; img.data[i * 4 + 3] = 255; }
+  og.putImageData(img, 0, 0);
+  const cell = $('imgcell'), aw = cell.clientWidth, ah = cell.clientHeight, s = Math.max(0.2, Math.min(aw / S.W, ah / (S.H * S.ratio)));
+  const cw = Math.max(10, Math.floor(S.W * s)), ch = Math.max(10, Math.floor(S.H * S.ratio * s));
+  if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+  sx = cw / S.W; sy = ch / S.H;
+  const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(off, 0, 0, cw, ch);
+  for (const L of linesSorted()) if (validL(L)) overlay(g, L);
+}
+function overlay(g, L) {
+  const P0 = { x: L.x0 * sx, y: L.y0 * sy }, P1 = { x: L.x1 * sx, y: L.y1 * sy }, col = LCOL[L.slot];
+  g.lineCap = 'round';
+  g.lineWidth = 4; g.strokeStyle = '#000'; g.beginPath(); g.moveTo(P0.x, P0.y); g.lineTo(P1.x, P1.y); g.stroke();
+  g.lineWidth = 2; g.strokeStyle = col; g.beginPath(); g.moveTo(P0.x, P0.y); g.lineTo(P1.x, P1.y); g.stroke();
+  for (const P of [P0, P1]) { g.fillStyle = '#fff'; g.strokeStyle = col === '#ffffff' ? '#000' : col; g.lineWidth = 2.5; g.beginPath(); g.arc(P.x, P.y, 6, 0, 7); g.fill(); g.stroke(); }
+  label(g, '線' + (L.slot + 1), Math.min(Math.max(P0.x + 8, 2), $('cvImg').width - 40), Math.max(P0.y - 9, 15), '#222');
+  const pts = L.marks.map(m => { const p = imgPt(L, m.d); return { x: p.x * sx, y: p.y * sy }; });
+  if (pts.length === 2) {
+    g.lineWidth = 10; g.strokeStyle = '#000'; g.beginPath(); g.moveTo(pts[0].x, pts[0].y); g.lineTo(pts[1].x, pts[1].y); g.stroke();
+    g.lineWidth = 6; g.strokeStyle = '#ffe600'; g.beginPath(); g.moveTo(pts[0].x, pts[0].y); g.lineTo(pts[1].x, pts[1].y); g.stroke();
+  }
+  pts.forEach((p, i) => {
+    g.fillStyle = COL[i]; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(p.x, p.y, 9, 0, 7); g.stroke(); g.fill();
+    const txt = '点' + (i + 1); g.font = 'bold 15px sans-serif'; const w = g.measureText(txt).width;
+    let tx = p.x + 13, ty = p.y - 11; if (tx + w > $('cvImg').width - 2) tx = p.x - 13 - w; if (ty < 16) ty = p.y + 24;
+    label(g, txt, tx, ty, COL[i] === '#e53935' ? '#b71c1c' : '#0b3fb5');
+  });
+}
+
+// ---------- 三次元表示(マウスで回す) ----------
+const V3 = { az: -0.6, el: 0.75, zoom: 1, exag: 1 };
+function setMode3d(on) {
+  S.mode3d = !!on; $('b3d').classList.toggle('on', S.mode3d); $('b3d').textContent = S.mode3d ? '平面に戻る' : '三次元で見る';
+  $('cvImg').style.display = S.mode3d ? 'none' : 'block'; $('cv3d').style.display = S.mode3d ? 'block' : 'none'; $('ctl3').style.display = S.mode3d ? 'flex' : 'none';
+  drawImage();
+}
+function draw3D() {
+  const cv = $('cv3d'), cell = $('imgcell'), dpr = window.devicePixelRatio || 1, cw = Math.max(200, cell.clientWidth), ch = Math.max(200, cell.clientHeight);
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px'; cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#f2f5f8'; g.fillRect(0, 0, cw, ch);
+  if (!S.orig) return;
+  const z = cur(), W = S.W, H = S.H, px = pxNm(), py = pyNm();
+  const srt = Float64Array.from(z).sort(), lo = AFMCore.percentile(srt, 0.005), hi = AFMCore.percentile(srt, 0.995), span = hi - lo || 1;
+  $('cbMin').textContent = f1(lo, 0); $('cbMax').textContent = f1(hi, 0);
+  const step = Math.max(1, Math.ceil(Math.max(W, H) / 110)), gw = Math.max(2, Math.floor(W / step)), gh = Math.max(2, Math.floor(H / step));
+  const zz = new Float32Array(gw * gh); let zmin = Infinity, zmax = -Infinity;
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+    let s = 0, n = 0;
+    for (let dy = 0; dy < step; dy++) for (let dx = 0; dx < step; dx++) { const x = i * step + dx, y = j * step + dy; if (x < W && y < H) { s += z[y * W + x]; n++; } }
+    const v = n ? s / n : 0; zz[j * gw + i] = v; if (v < zmin) zmin = v; if (v > zmax) zmax = v;
+  }
+  const exag = V3.exag, Lnm = Math.max(W * px, H * py), zmid = (zmin + zmax) / 2, cx = W * px / 2, cy = H * py / 2;
+  const ca = Math.cos(V3.az), sa = Math.sin(V3.az), ce = Math.cos(V3.el), se = Math.sin(V3.el), scale = V3.zoom * Math.min(cw, ch) * 0.62, ox = cw / 2, oy = ch / 2 + 14;
+  const proj = (X, Y, Z) => { const a = X * ca - Y * sa, d = X * sa + Y * ca; return { x: ox + a * scale, y: oy - (Z * ce + d * se) * scale, d: d * ce - Z * se }; };
+  const PX = new Float32Array(gw * gh), PY = new Float32Array(gw * gh), PD = new Float32Array(gw * gh);
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+    const k = j * gw + i, p = proj(((i + 0.5) * step * px - cx) / Lnm, (cy - (j + 0.5) * step * py) / Lnm, (zz[k] - zmid) * exag / Lnm);
+    PX[k] = p.x; PY[k] = p.y; PD[k] = p.d;
+  }
+  // 床(高さの最小の面)と、目盛りつきの格子。長さの単位はナノメートル
+  const zf = (zmin - zmid) * exag / Lnm - 0.0015, flo = (x, y, zq) => proj((x * px - cx) / Lnm, (cy - y * py) / Lnm, zq === undefined ? zf : zq);
+  const gx = niceStep(W * px, 6), gy = niceStep(H * py, 6);
+  g.fillStyle = '#e3e9f0'; g.strokeStyle = '#8b98a8'; g.lineWidth = 1.5; g.beginPath();
+  [[0, 0], [W, 0], [W, H], [0, H]].forEach(([x, y], i) => { const p = flo(x, y); i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y); }); g.closePath(); g.fill(); g.stroke();
+  g.strokeStyle = '#c3ccd8'; g.lineWidth = 1;
+  for (let v = gx; v < W * px - 1; v += gx) { const a = flo(v / px, 0), b = flo(v / px, H); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
+  for (let v = gy; v < H * py - 1; v += gy) { const a = flo(0, v / py), b = flo(W, v / py); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); }
+  const nc = (gw - 1) * (gh - 1), dep = new Float32Array(nc), idx = new Array(nc);
+  for (let j = 0; j < gh - 1; j++) for (let i = 0; i < gw - 1; i++) { const c = j * (gw - 1) + i, k = j * gw + i; idx[c] = c; dep[c] = PD[k] + PD[k + 1] + PD[k + gw] + PD[k + gw + 1]; }
+  idx.sort((p, q) => dep[q] - dep[p]);
+  const dxn = step * px, dyn = step * py;
+  for (const c of idx) {
+    const i = c % (gw - 1), j = (c - i) / (gw - 1), k = j * gw + i, zc = (zz[k] + zz[k + 1] + zz[k + gw] + zz[k + gw + 1]) / 4;
+    const dzdx = ((zz[k + 1] - zz[k]) + (zz[k + gw + 1] - zz[k + gw])) / 2 * exag / dxn, dzdj = ((zz[k + gw] - zz[k]) + (zz[k + gw + 1] - zz[k + 1])) / 2 * exag / dyn;
+    let nx = -dzdx, ny = dzdj, nz = 1; const nl = Math.hypot(nx, ny, nz); nx /= nl; ny /= nl; nz /= nl;
+    const sh = 0.55 + 0.45 * Math.max(0, nx * -0.4 + ny * 0.4 + nz * 0.82), tt = Math.max(0, Math.min(1, (zc - lo) / span)), kk = Math.round(tt * 255);
+    const fill = 'rgb(' + Math.round(LUT[kk * 3] * sh) + ',' + Math.round(LUT[kk * 3 + 1] * sh) + ',' + Math.round(LUT[kk * 3 + 2] * sh) + ')';
+    g.fillStyle = fill; g.strokeStyle = fill; g.lineWidth = 0.6;
+    g.beginPath(); g.moveTo(PX[k], PY[k]); g.lineTo(PX[k + 1], PY[k + 1]); g.lineTo(PX[k + gw + 1], PY[k + gw + 1]); g.lineTo(PX[k + gw], PY[k + gw]); g.closePath(); g.fill(); g.stroke();
+  }
+  // 目盛りの数字: 手前の 2 辺に、距離(ナノメートル)。左端の角に、高さ(ナノメートル。拡大していても、実際の高さ)
+  {
+    const mid = flo(W / 2, H / 2), placed = [];
+    // 数字は、すでに描いた数字と重なるときは描かない(端の数字を先に描く)
+    const put = (txt, x, y, align) => {
+      const w = g.measureText(txt).width, x0 = align === 'right' ? x - w : align === 'left' ? x : x - w / 2, box = [x0 - 3, y - 15, x0 + w + 3, y + 6];
+      if (placed.some(q => box[0] < q[2] && box[2] > q[0] && box[1] < q[3] && box[3] > q[1])) return false;
+      placed.push(box); g.textAlign = align; g.fillText(txt, x, y); return true;
+    };
+    const tick = (p, txt, off) => { const vx = p.x - mid.x, vy = p.y - mid.y, l = Math.hypot(vx, vy) || 1, o = off + g.measureText(txt).width / 2 * Math.abs(vx / l); put(txt, p.x + vx / l * o, p.y + vy / l * o + 5, 'center'); };
+    g.font = '14px sans-serif'; g.fillStyle = '#26323f';
+    const edgeX = (flo(W / 2, 0).d <= flo(W / 2, H).d) ? 0 : H, edgeY = (flo(0, H / 2).d <= flo(W, H / 2).d) ? 0 : W;
+    const xs = [], ys = [];
+    for (let v = 0; v <= W * px + 1e-6; v += gx) xs.push(v);
+    for (let v = 0; v <= H * py + 1e-6; v += gy) ys.push(v);
+    // 先に両端、あとで中間の順に描く
+    [xs[0], xs[xs.length - 1], ...xs.slice(1, -1)].forEach(v => tick(flo(v / px, edgeX), String(Math.round(v)), 16));
+    [ys[0], ys[ys.length - 1], ...ys.slice(1, -1)].forEach(v => tick(flo(edgeY, v / py), String(Math.round(v)), 18));
+    // 高さの軸: 画面の左端に見える角に立てる
+    const cs = [[0, 0], [W, 0], [W, H], [0, H]].map(([x, y]) => ({ x, y, p: flo(x, y) })).sort((a, b) => a.p.x - b.p.x)[0];
+    const top = proj((cs.x * px - cx) / Lnm, (cy - cs.y * py) / Lnm, (zmax - zmid) * exag / Lnm), base = cs.p;
+    g.strokeStyle = '#26323f'; g.lineWidth = 2; g.beginPath(); g.moveTo(base.x, base.y); g.lineTo(top.x, top.y); g.stroke();
+    const sz = niceStep(zmax - zmin, 4);
+    let lastY = Infinity;
+    for (let v = Math.ceil(zmin / sz) * sz; v <= zmax + 1e-9; v += sz) {
+      const p = proj((cs.x * px - cx) / Lnm, (cy - cs.y * py) / Lnm, (v - zmid) * exag / Lnm);
+      g.beginPath(); g.moveTo(p.x - 5, p.y); g.lineTo(p.x + 5, p.y); g.stroke();
+      if (Math.abs(p.y - lastY) >= 16 && put(String(Math.round(v)), p.x - 9, p.y + 5, 'right')) lastY = p.y;   // 数字が重なるときは、描かない
+    }
+    g.textAlign = 'left'; g.fillText('高さ(nm)', Math.max(4, top.x - 40), Math.max(16, top.y - 10));
+    g.fillStyle = '#26323f'; g.fillText('高さ方向 ' + exag.toFixed(1) + ' 倍' + (exag === 1 ? '(縦横と同じ縮尺)' : '(高さを引き伸ばして表示)'), 8, 18);
+    g.fillText('目盛りの単位: nm(床の 2 辺: 画像上の位置 / 左の軸: 高さ)', 8, 38);
+  }
+  // 引いた線と、選んだ区間を、立体の表面に重ねる(線は、立体の手前の面に隠れず、上に描く)
+  const at = (L, t01) => { const x = L.x0 + (L.x1 - L.x0) * t01, y = L.y0 + (L.y1 - L.y0) * t01, h = AFMProfile.bilinear(z, W, H, x, y); return proj((x * px - cx) / Lnm, (cy - y * py) / Lnm, ((h - zmid) * exag) / Lnm + 0.004); };
+  const poly = (L, a0, a1, width, color) => { const n = 160; g.lineWidth = width; g.strokeStyle = color; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); for (let i = 0; i <= n; i++) { const p = at(L, a0 + (a1 - a0) * i / n); i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y); } g.stroke(); };
+  for (const L of linesSorted()) {
+    if (!validL(L)) continue;
+    poly(L, 0, 1, 4.5, '#000'); poly(L, 0, 1, 2.5, LCOL[L.slot]);
+    const len = lenOf(L) || 1;
+    if (L.marks.length === 2) { const a0 = Math.min(L.marks[0].d, L.marks[1].d) / len, a1 = Math.max(L.marks[0].d, L.marks[1].d) / len; poly(L, a0, a1, 9, '#000'); poly(L, a0, a1, 5.5, '#ffe600'); }
+    const p0 = at(L, 0); label(g, '線' + (L.slot + 1), p0.x + 8, p0.y - 8, '#222');
+    L.marks.forEach((m, i) => { const p = at(L, m.d / len); g.fillStyle = COL[i]; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(p.x, p.y, 6, 0, 7); g.stroke(); g.fill(); label(g, '点' + (i + 1), p.x + 10, p.y - 9, COL[i] === '#e53935' ? '#b71c1c' : '#0b3fb5'); });
+  }
+}
+(function () {
+  const cv = $('cv3d'); let d = null, raf = 0;
+  const redraw = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw3D(); }); };
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); d = { x: e.clientX, y: e.clientY }; });
+  cv.addEventListener('pointermove', e => { if (!d) return; V3.az -= (e.clientX - d.x) * 0.008; V3.el = Math.max(0.05, Math.min(1.55, V3.el + (e.clientY - d.y) * 0.008)); d = { x: e.clientX, y: e.clientY }; redraw(); });
+  const up = () => { d = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); V3.zoom = Math.max(0.3, Math.min(6, V3.zoom * (e.deltaY < 0 ? 1.1 : 0.91))); redraw(); }, { passive: false });
+  $('zx').addEventListener('input', e => { V3.exag = Number(e.target.value); $('zxv').textContent = V3.exag.toFixed(1) + ' 倍'; redraw(); });
+  $('r3').addEventListener('click', () => { V3.az = -0.6; V3.el = 0.75; V3.zoom = 1; redraw(); });
+  $('b3d').addEventListener('click', () => { if (!S.orig) return toast('先にファイルを入れてください'); setMode3d(!S.mode3d); });
+})();
+
+// ---------- 画像の上で線を引く(最大 3 本) ----------
+(function () {
+  const cv = $('cvImg'); let drag = null;
+  const pos = e => { const b = cv.getBoundingClientRect(), kx = cv.width / (b.width || 1), ky = cv.height / (b.height || 1); return { x: Math.max(0, Math.min(S.W, (e.clientX - b.left) * kx / sx)), y: Math.max(0, Math.min(S.H, (e.clientY - b.top) * ky / sy)) }; };
+  const near = (p, x, y) => Math.hypot((p.x - x) * sx, (p.y - y) * sy) < 12;
+  cv.addEventListener('pointerdown', e => {
+    if (!S.orig) return; cv.setPointerCapture(e.pointerId); const p = pos(e);
+    for (const L of S.lines) { if (!validL(L)) continue; if (near(p, L.x0, L.y0)) { drag = { L, end: 0, pending: false }; return; } if (near(p, L.x1, L.y1)) { drag = { L, end: 1, pending: false }; return; } }
+    drag = { L: { x0: p.x, y0: p.y, x1: p.x, y1: p.y, marks: [], slot: -1 }, end: 1, pending: true };
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!drag) return; const p = pos(e), L = drag.L;
+    if (drag.end === 0) { L.x0 = p.x; L.y0 = p.y; } else { L.x1 = p.x; L.y1 = p.y; }
+    if (drag.pending) {
+      if (!validL(L)) return;
+      // 線が引けた(2 画素以上)ので、ここで線として登録する。3 本あるときは、いちばん古い線を消す
+      if (S.lines.length >= MAXL) S.lines.shift();
+      L.slot = newSlot(); S.lines.push(L); drag.pending = false; renderCards();
+    }
+    clampMarks(); drawImage(); drawProfiles();
+  });
+  const end = () => { if (!drag) return; drag = null; clampMarks(); drawImage(); drawProfiles(); };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+})();
+
+// ---------- 断面図(線ごとに 1 つ) ----------
+const PL = { l: 62, r: 12, t: 8, b: 40 };
+function niceStep(range, n) { const raw = range / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; }
+function hAtL(L, d) { const n = L.prof.d.length, t = Math.max(0, Math.min(1, d / (L.prof.lengthNm || 1))) * (n - 1), i = Math.min(n - 2, Math.floor(t)), f = t - i; return L.prof.h[i] * (1 - f) + L.prof.h[i + 1] * f; }
+function marksPts(L) { return L.marks.map(m => ({ d: m.d, h: L.prof ? hAtL(L, m.d) : NaN })); }
+function drawProfiles() { S.lines.forEach(drawProfile); }
+function drawProfile(L) {
+  const cv = L.cv; if (!cv) return;
+  const dpr = window.devicePixelRatio || 1, cw = cv.clientWidth || 600, ch = cv.clientHeight || 160;
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = '#fff'; g.fillRect(0, 0, cw, ch); L.prof = null; L.geom = null;
+  if (!validL(L)) { updateSel(L); return; }
+  L.prof = AFMProfile.sample(cur(), S.W, S.H, L, pxNm(), pyNm());
+  const d = L.prof.d, h = L.prof.h, n = d.length; let mn = Infinity, mx = -Infinity;
+  for (let i = 0; i < n; i++) { if (h[i] < mn) mn = h[i]; if (h[i] > mx) mx = h[i]; }
+  const pad = (mx - mn) * 0.07 || 1; mn -= pad; mx += pad; const dmax = L.prof.lengthNm || 1;
+  const w = cw - PL.l - PL.r, hh = ch - PL.t - PL.b; L.geom = { w, hh, mn, mx, dmax, cw, ch };
+  const X = v => PL.l + v / dmax * w, Y = v => PL.t + hh - (v - mn) / (mx - mn) * hh; L.geom.X = X; L.geom.Y = Y;
+  const pts = marksPts(L);
+  if (pts.length === 2) { const a = Math.min(pts[0].d, pts[1].d), b = Math.max(pts[0].d, pts[1].d); g.fillStyle = 'rgba(255,235,59,.38)'; g.fillRect(X(a), PL.t, Math.max(1, X(b) - X(a)), hh); }
+  g.strokeStyle = '#e3e8ee'; g.fillStyle = '#33414f'; g.font = '14px sans-serif'; g.lineWidth = 1;
+  const stepY = Math.max(1, Math.round(hh / 40)), sy2 = niceStep(mx - mn, Math.min(5, stepY)); g.textAlign = 'right';
+  for (let v = Math.ceil(mn / sy2) * sy2; v <= mx; v += sy2) { const y = Y(v); g.beginPath(); g.moveTo(PL.l, y); g.lineTo(PL.l + w, y); g.stroke(); g.fillText(v.toFixed(sy2 < 1 ? 1 : 0), PL.l - 6, y + 5); }
+  const sx2 = niceStep(dmax, 7); g.textAlign = 'center';
+  for (let v = 0; v <= dmax; v += sx2) { const x = X(v); g.beginPath(); g.moveTo(x, PL.t); g.lineTo(x, PL.t + hh); g.stroke(); g.fillText(v.toFixed(sx2 < 1 ? 1 : 0), x, PL.t + hh + 17); }
+  g.strokeStyle = '#8a96a6'; g.beginPath(); g.moveTo(PL.l, PL.t); g.lineTo(PL.l, PL.t + hh); g.lineTo(PL.l + w, PL.t + hh); g.stroke();
+  g.fillStyle = '#1d2733'; g.textAlign = 'right'; g.fillText('距離(ナノメートル)', PL.l + w, ch - 3);
+  g.save(); g.translate(13, PL.t + hh / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText(hh >= 130 ? '高さ(ナノメートル)' : '高さ', 0, 0); g.restore(); g.textAlign = 'left';
+  g.strokeStyle = '#1f6feb'; g.lineWidth = 2; g.beginPath(); for (let i = 0; i < n; i++) { const x = X(d[i]), y = Y(h[i]); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
+  pts.forEach((p, i) => {
+    const x = X(p.d), y = Y(p.h), act = (i === L.hover || i === L.dragM), r = act ? 9 : 6;
+    g.strokeStyle = COL[i]; g.lineWidth = act ? 3.5 : 1.5; g.setLineDash(act ? [] : [5, 4]); g.beginPath(); g.moveTo(x, PL.t); g.lineTo(x, PL.t + hh); g.stroke(); g.setLineDash([]);
+    g.fillStyle = COL[i]; g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke(); g.fill();
+  });
+  g.textAlign = 'left'; updateSel(L);
+}
+function updateSel(L) {
+  const e = L.el; if (!e) return;
+  const pts = L.prof ? marksPts(L) : [];
+  if (pts.length === 2) {
+    const dh = pts[1].h - pts[0].h;
+    e.hint.textContent = ''; e.hv.textContent = '高さ ' + (dh >= 0 ? '+' : '−') + f1(Math.abs(dh), 1) + ' ナノメートル'; e.dv.textContent = '距離 ' + f1(Math.abs(pts[1].d - pts[0].d), 0) + ' ナノメートル';
+  } else {
+    e.hint.textContent = pts.length === 1 ? 'もう1か所をクリックするか、点1から横へドラッグして、点2を置いてください' : '断面図を、区間の始まりからドラッグするか、2か所をクリックしてください';
+    e.hv.textContent = ''; e.dv.textContent = '';
+  }
+}
+function attachProf(L) {
+  const cv = L.cv;
+  const pt = e => { const b = cv.getBoundingClientRect(); return { x: (e.clientX - b.left) * (cv.clientWidth / (b.width || 1)), y: (e.clientY - b.top) * (cv.clientHeight / (b.height || 1)) }; };
+  const toD = x => Math.max(0, Math.min(L.geom.dmax, (x - PL.l) / L.geom.w * L.geom.dmax));
+  const inPlot = p => L.geom && p.x >= PL.l - 1 && p.x <= PL.l + L.geom.w + 1 && p.y >= PL.t - 2 && p.y <= PL.t + L.geom.hh + 2;
+  // 補助線(縦の点々)の近くを押すと、その点をつかめる。線のどの高さでもよい(丸の上でもよい)
+  const hit = p => { if (!L.geom || !L.prof || !inPlot(p)) return -1; const pts = marksPts(L); let best = -1, bd = 9; for (let i = 0; i < pts.length; i++) { const dx = Math.abs(p.x - L.geom.X(pts[i].d)); if (dx < bd) { bd = dx; best = i; } } return best; };
+  const redraw = () => { drawProfile(L); drawImage(); };
+  L.hover = -1; L.dragM = -1; L.pend = null;
+  cv.addEventListener('pointerdown', e => {
+    if (!L.geom || !L.prof) return; const p = pt(e), k = hit(p);
+    if (k >= 0) { L.dragM = k; cv.setPointerCapture(e.pointerId); cv.style.cursor = 'ew-resize'; redraw(); return; }
+    if (!inPlot(p) || L.marks.length >= 2) return;
+    cv.setPointerCapture(e.pointerId);
+    if (L.marks.length === 0) { L.marks.push({ d: toD(p.x) }); L.pend = { x: p.x }; }           // 押した場所が、区間の始まり(点1)。そのままドラッグすると、点2が伸びる
+    else { L.marks.push({ d: toD(p.x) }); L.dragM = 1; }
+    redraw();
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!L.geom || !L.prof) return; const p = pt(e);
+    if (L.dragM >= 0) { L.marks[L.dragM].d = toD(p.x); redraw(); return; }
+    if (L.pend) { if (Math.abs(p.x - L.pend.x) > 3) { L.marks.push({ d: toD(p.x) }); L.dragM = 1; L.pend = null; cv.style.cursor = 'ew-resize'; } redraw(); return; }
+    const k = hit(p); if (k !== L.hover) { L.hover = k; drawProfile(L); }
+    cv.style.cursor = k >= 0 ? 'ew-resize' : (L.marks.length < 2 ? 'crosshair' : 'default');
+  });
+  const up = () => { if (L.dragM >= 0 || L.pend) { L.dragM = -1; L.pend = null; cv.style.cursor = L.hover >= 0 ? 'ew-resize' : (L.marks.length < 2 ? 'crosshair' : 'default'); redraw(); } };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('pointerleave', () => { if (L.hover >= 0 && L.dragM < 0) { L.hover = -1; drawProfile(L); } });
+}
+function renderCards() {
+  const box = $('cards'); box.innerHTML = '';
+  if (!S.lines.length) { const d = document.createElement('div'); d.className = 'card noline'; d.id = 'noline'; d.textContent = S.orig ? '画像の上でドラッグして、線を引いてください(3本まで。それぞれの断面図が出ます)' : 'ファイルを入れると、画像の上に線を引けます'; box.appendChild(d); return; }
+  linesSorted().forEach(L => {
+    const n = L.slot + 1, c = document.createElement('div'); c.className = 'card lcard'; c.id = 'card' + n;
+    c.innerHTML = '<div class="lhead"><span class="chip"></span><span class="lname">線' + n + '</span><span class="rd"><span class="hintt" id="hint' + n + '"></span><span id="hv' + n + '"></span><span id="dv' + n + '"></span></span><button id="redo' + n + '">2点をやり直す</button><button id="del' + n + '" title="この線を消す">線を消す</button></div><div class="pc"><canvas id="cvProf' + n + '"></canvas></div>';
+    c.querySelector('.chip').style.background = LCOL[L.slot]; box.appendChild(c);
+    L.cv = c.querySelector('canvas'); L.el = { hint: c.querySelector('#hint' + n), hv: c.querySelector('#hv' + n), dv: c.querySelector('#dv' + n) };
+    c.querySelector('#redo' + n).addEventListener('click', () => { L.marks = []; L.hover = -1; L.dragM = -1; drawProfile(L); drawImage(); });
+    c.querySelector('#del' + n).addEventListener('click', () => { S.lines = S.lines.filter(q => q !== L); renderCards(); drawImage(); });
+    attachProf(L);
+  });
+  drawProfiles();
+}
+
+function refresh() {
+  const st = $('status'); st.textContent = statusText(); st.classList.toggle('done', !!S.order);
+  [['b1', 1], ['b2', 2], ['b3', 3]].forEach(([id, o]) => $(id).classList.toggle('on', S.hist.includes(o))); $('b0').classList.toggle('on', !!S.orig && !S.order);
+  clampMarks(); drawBar(); drawImage(); renderCards();
+}
+let rz = 0; const relayout = () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => { if (S.orig) drawImage(); drawProfiles(); }); };
+window.addEventListener('resize', relayout);
+if (window.ResizeObserver) new ResizeObserver(relayout).observe($('imgcell'));
+drawBar(); renderCards();
+const LN = i => linesSorted()[i || 0];
+window.AFMSimple = {
+  S, V3, core: AFMCore, geom: i => LN(i).geom, prof: i => LN(i).prof, scales: () => ({ sx, sy }), marks: i => LN(i).marks.map(m => ({ d: m.d })), count: () => S.lines.length,
+  profileClient: (d, h, i) => { const L = LN(i), b = L.cv.getBoundingClientRect(); return { x: b.left + L.geom.X(d), y: b.top + L.geom.Y(h === undefined ? hAtL(L, d) : h) }; },
+  hAt: (d, i) => hAtL(LN(i), d)
+};
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "説明": "一次の傾きのみ",
+  "scan_nm": 30000.0,
+  "n": 256,
+  "pillar_height_nm": 250.0,
+  "pillar_rows": 10,
+  "pillar_cols": 10,
+  "noise_sd_nm": 2.0
+}
